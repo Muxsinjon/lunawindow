@@ -28,3 +28,4 @@ This log supports the Space Apps "Use of Super Intelligence (SI)" disclosure.
 | 2026-11-14 | Repo hygiene: ESLint, Prettier, .gitattributes, CI and Pages workflows, README, LICENSE, dead-code removal | `web/eslint.config.js`, `.github/workflows/*`, `README.md`, `LICENSE` |
 | 2026-11-14 | Playwright smoke tests and screenshot capture; after screenshots | `tests/e2e/*`, `docs/screenshots/after/*` |
 | 2026-11-14 | Audit, status tracking and quality checklist | `AUDIT.md`, `docs/QUALITY_CHECKLIST.md` |
+| 2026-11-14 | Gap analysis of the LunaWindow master prompt vs the build | `docs/LUNAWINDOW_CHECKLIST.md` |
