@@ -56,7 +56,7 @@ describe('real sites', () => {
     const ctx = makeCtx(site('shackleton-floor'), sites.azStepDeg)
     const t0 = Date.parse('2027-01-01T00:00:00Z')
     const t1 = t0 + 365 * 86_400_000
-    const sum = summarizeSamples(series(ctx, eph, t0, t1, 6), t0, t1)
+    const sum = summarizeSamples(series(ctx, eph, t0, t1 - 1, 6), 6 * 3_600_000)
     expect(sum.sunPct).toBe(0)
   })
 

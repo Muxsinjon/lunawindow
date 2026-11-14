@@ -2,7 +2,8 @@
 import type { Ephemeris, Site } from './data'
 import { type Basis, type Vec3, azEl, enuBasis, horizonAt, unitVec } from './geometry'
 import { R_EARTH_KM, R_MOON_KM, SUN_RADIUS_DEG, angularRadiusDeg, discFractionAbove, upperLimbMargin } from './physics/disc'
-import { type Interval, firstCrossing, intersect, longestGap, percentCovered, positiveIntervals } from './physics/windows'
+import type { Interval } from './physics/windows'
+import { type Body, type Flags, type VisModel, flagsFromSamples, runsSummary, signal } from './visibility'
 
 export { SUN_RADIUS_DEG }
 export type { Interval }
@@ -120,104 +121,104 @@ export function series(ctx: SiteCtx, eph: Ephemeris, t0: number, t1: number, str
   return out
 }
 
-export type Body = 'sun' | 'earth'
-const upper = (b: Body) => (s: Sample) => (b === 'sun' ? s.sunUpper : s.earthUpper)
-
-/** Visibility intervals (upper limb above terrain) for a body. */
-export function visibleIntervals(samples: Sample[], body: Body): Interval[] {
-  const f = upper(body)
-  return positiveIntervals(samples.map((s) => ({ t: s.t, v: f(s) })))
-}
+export type { Body, VisModel }
 
 export interface NextEvent {
-  time: number | null
   kind: 'Sunrise' | 'Sunset' | 'Earthrise' | 'Earthset'
+  /** first hourly sample in the new state (the event happened in the hour before), or null if none before the data ends */
+  time: number | null
+  /** last hourly sample still in the old state */
+  after: number | null
 }
 
-/** Next rise/set (upper-limb crossing of the terrain horizon) after t, searching up to maxDays. */
-export function nextEvent(ctx: SiteCtx, eph: Ephemeris, t: number, body: Body, maxDays = 400): NextEvent {
-  const f = upper(body)
-  const now = sampleAt(ctx, eph, t)
-  const up = f(now) > 0
-  const kind: NextEvent['kind'] = body === 'sun' ? (up ? 'Sunset' : 'Sunrise') : up ? 'Earthset' : 'Earthrise'
-  const end = Math.min(eph.endMs, t + maxDays * DAY)
+/** Next rise/set after t on the hourly sample grid (resolution: 1 h). */
+export function nextEvent(ctx: SiteCtx, eph: Ephemeris, t: number, body: Body, model: VisModel = 'terrain', maxDays = 400): NextEvent {
   const m = eph.meta
-  let prev = { t, v: f(now) }
-  // walk the hourly grid in chunks to keep memory small
-  for (let i = Math.floor((t - m.startMs) / m.stepMs) + 1; m.startMs + i * m.stepMs <= end; i++) {
+  let i = Math.max(0, Math.floor((t - m.startMs) / m.stepMs))
+  const [e0, s0] = rowVec(eph, i)
+  const up = signal(evalVectors(ctx, 0, e0, s0), body, model) > 0
+  const kind: NextEvent['kind'] = body === 'sun' ? (up ? 'Sunset' : 'Sunrise') : up ? 'Earthset' : 'Earthrise'
+  const last = Math.min(m.count - 1, i + Math.round((maxDays * DAY) / m.stepMs))
+  for (i = i + 1; i <= last; i++) {
     const [e, s] = rowVec(eph, i)
-    const cur = { t: m.startMs + i * m.stepMs, v: f(evalVectors(ctx, 0, e, s)) }
-    const c = firstCrossing([prev, cur])
-    if (c) return { time: c.time, kind }
-    prev = cur
+    if (signal(evalVectors(ctx, 0, e, s), body, model) > 0 !== up) {
+      const time = m.startMs + i * m.stepMs
+      return { kind, time, after: time - m.stepMs }
+    }
   }
-  return { time: null, kind }
+  return { kind, time: null, after: null }
 }
 
 /** Power per m² of panel, 30 % cells, using the visible fraction of the solar disc. */
-export function panelPower(s: Sample, orientation: 'vertical' | 'horizontal' = 'vertical', eff = PANEL_EFFICIENCY) {
+export function panelPower(s: Sample, orientation: 'vertical' | 'horizontal' = 'vertical', eff = PANEL_EFFICIENCY, model: VisModel = 'terrain') {
   const el = (Math.max(0, s.sunEl) * Math.PI) / 180
   const cosInc = orientation === 'vertical' ? Math.cos(el) : Math.sin(el)
-  return SOLAR_CONSTANT * eff * s.sunFrac * Math.max(0, cosInc)
+  const frac = model === 'terrain' ? s.sunFrac : s.sunEl > 0 ? 1 : 0
+  return SOLAR_CONSTANT * eff * frac * Math.max(0, cosInc)
 }
 
 export interface WindowSummary {
+  model: VisModel
+  stepMs: number
+  totalMs: number
   sun: Interval[]
   earth: Interval[]
   both: Interval[]
+  sunOnly: Interval[]
+  earthOnly: Interval[]
+  neither: Interval[]
   sunPct: number
   earthPct: number
   bothPct: number
+  sunOnlyPct: number
+  earthOnlyPct: number
+  neitherPct: number
   longestDarkMs: number
   longestNoLinkMs: number
+  longestSunMs: number
+  longestEarthMs: number
+  /** number of separate periods without Earth in view inside the window */
+  linkInterruptions: number
   maxSunEl: number
   avgPowerVertical: number
 }
 
-export function summarize(ctx: SiteCtx, eph: Ephemeris, t0: number, t1: number): { samples: Sample[]; sum: WindowSummary } {
-  const samples = series(ctx, eph, t0, t1)
-  return { samples, sum: summarizeSamples(samples, t0, t1) }
+/** Samples whose start lies in [t0, t1): each covers [t, t + 1 h) (half-open). */
+export function summarize(
+  ctx: SiteCtx,
+  eph: Ephemeris,
+  t0: number,
+  t1: number,
+  model: VisModel = 'terrain',
+): { samples: Sample[]; sum: WindowSummary } {
+  const samples = series(ctx, eph, t0, t1 - 1)
+  return { samples, sum: summarizeSamples(samples, eph.meta.stepMs, model) }
 }
 
-/** Pure summary of a sample series over [t0, t1]. */
-export function summarizeSamples(samples: Sample[], t0: number, t1: number): WindowSummary {
-  const sun = visibleIntervals(samples, 'sun')
-  const earth = visibleIntervals(samples, 'earth')
-  const both = intersect(sun, earth)
+/** Pure summary of an hourly sample series (half-open intervals, sample-count durations). */
+export function summarizeSamples(samples: Sample[], stepMs: number, model: VisModel = 'terrain'): WindowSummary {
+  const f: Flags = flagsFromSamples(samples, model)
+  const t = samples.map((s) => s.t)
+  const r = runsSummary(f, t, stepMs)
   let p = 0
   let maxSunEl = -90
   for (const s of samples) {
-    p += panelPower(s)
+    p += panelPower(s, 'vertical', PANEL_EFFICIENCY, model)
     maxSunEl = Math.max(maxSunEl, s.sunEl)
   }
-  return {
-    sun,
-    earth,
-    both,
-    sunPct: percentCovered(sun, t0, t1),
-    earthPct: percentCovered(earth, t0, t1),
-    bothPct: percentCovered(both, t0, t1),
-    longestDarkMs: longestGap(sun, t0, t1),
-    longestNoLinkMs: longestGap(earth, t0, t1),
-    maxSunEl,
-    avgPowerVertical: samples.length ? p / samples.length : 0,
-  }
+  return { model, stepMs, ...r, maxSunEl, avgPowerVertical: samples.length ? p / samples.length : 0 }
 }
 
-/** Full-range hourly flags for the slip analyzer (cached per site). */
+/** Full-range hourly visibility flags for one site and model (cached). */
 export interface Hourly {
   sun: Uint8Array
   earth: Uint8Array
-  /** hours of uninterrupted sunlight starting at index i */
-  sunRun: Uint32Array
-  /** prefix sum of earth-visible hours */
-  earthCum: Uint32Array
 }
 
 const hourlyCache = new Map<string, Hourly>()
 
-export function hourly(ctx: SiteCtx, eph: Ephemeris): Hourly {
-  const key = `${ctx.site.id}:${ctx.site.lat}:${ctx.site.lon}`
+export function hourly(ctx: SiteCtx, eph: Ephemeris, model: VisModel = 'terrain'): Hourly {
+  const key = `${ctx.site.id}:${ctx.site.lat}:${ctx.site.lon}:${model}`
   const hit = hourlyCache.get(key)
   if (hit) return hit
   const n = eph.meta.count
@@ -226,14 +227,10 @@ export function hourly(ctx: SiteCtx, eph: Ephemeris): Hourly {
   for (let i = 0; i < n; i++) {
     const [e, s] = rowVec(eph, i)
     const x = evalVectors(ctx, 0, e, s)
-    sun[i] = x.sunUpper > 0 ? 1 : 0
-    earth[i] = x.earthUpper > 0 ? 1 : 0
+    sun[i] = signal(x, 'sun', model) > 0 ? 1 : 0
+    earth[i] = signal(x, 'earth', model) > 0 ? 1 : 0
   }
-  const sunRun = new Uint32Array(n + 1)
-  for (let i = n - 1; i >= 0; i--) sunRun[i] = sun[i] ? sunRun[i + 1] + 1 : 0
-  const earthCum = new Uint32Array(n + 1)
-  for (let i = 0; i < n; i++) earthCum[i + 1] = earthCum[i] + earth[i]
-  const h = { sun, earth, sunRun, earthCum }
+  const h = { sun, earth }
   hourlyCache.set(key, h)
   return h
 }
