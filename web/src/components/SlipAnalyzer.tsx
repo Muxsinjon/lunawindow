@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react'
 import type { AppData, Site } from '../lib/data'
-import { DAY, HOUR, hourly, makeCtx } from '../lib/analysis'
+import { DAY, hourly, makeCtx } from '../lib/analysis'
 import { fmtTime } from '../lib/format'
+import { INFO } from '../lib/glossary'
+import { usePrefs } from '../lib/prefs'
+import { Icon, InfoTip } from './ui'
 
 interface Props {
   data: AppData
@@ -19,6 +22,7 @@ interface DayCell {
 }
 
 export default function SlipAnalyzer({ data, site, t0, onChoose }: Props) {
+  const { tz } = usePrefs()
   const [months, setMonths] = useState(12)
   const [minSunDays, setMinSunDays] = useState(6)
   const [missionDays, setMissionDays] = useState(10)
@@ -67,65 +71,74 @@ export default function SlipAnalyzer({ data, site, t0, onChoose }: Props) {
   const okCount = cells.filter((c) => c.ok).length
   const maxSun = Math.max(14, ...cells.map((c) => c.sunDays))
   const color = (c: DayCell) => {
-    if (c.bestHour === null) return 'var(--cell-none)'
+    if (c.bestHour === null) return 'var(--c-surface)'
     const t = Math.min(1, c.sunDays / maxSun)
-    return `color-mix(in oklab, var(--sun) ${Math.round(15 + 85 * t)}%, var(--panel-2))`
+    return `color-mix(in oklab, var(--c-sun) ${Math.round(12 + 78 * t)}%, var(--c-surface))`
   }
+  const after = cells.find((c) => c.ok && c.day >= t0 + 30 * DAY)
+
+  const slider = (label: string, value: string, min: number, max: number, step: number, v: number, set: (n: number) => void) => (
+    <label className="slider">
+      <span>
+        {label} <b className="num">{value}</b>
+      </span>
+      <input type="range" min={min} max={max} step={step} value={v} onChange={(e) => set(+e.target.value)} aria-valuetext={value} />
+    </label>
+  )
 
   return (
-    <section className="slip">
-      <div className="slip-controls">
-        <label>
-          Mission length <b>{missionDays} d</b>
-          <input type="range" min={1} max={28} value={missionDays} onChange={(e) => setMissionDays(+e.target.value)} />
-        </label>
-        <label>
-          Continuous sun after landing ≥ <b>{minSunDays} d</b>
-          <input type="range" min={0} max={20} value={minSunDays} onChange={(e) => setMinSunDays(+e.target.value)} />
-        </label>
-        <label>
-          Earth in view during mission ≥ <b>{minEarthPct}%</b>
-          <input type="range" min={0} max={100} step={5} value={minEarthPct} onChange={(e) => setMinEarthPct(+e.target.value)} />
-        </label>
-        <label>
-          Look ahead <b>{months} months</b>
-          <input type="range" min={1} max={36} value={months} onChange={(e) => setMonths(+e.target.value)} />
-        </label>
+    <section className="slip" aria-labelledby="slip-title">
+      <div className="view-head">
+        <div>
+          <h2 id="slip-title">
+            Landing calendar <InfoTip info={INFO.slip} label="the landing calendar" />
+          </h2>
+          <p className="lede">
+            When can you land at {site.name}? Set the mission’s needs, and every day that works lights up. Use it when a launch slips.
+          </p>
+        </div>
+      </div>
+      <div className="slip-controls panel">
+        {slider('Mission length', `${missionDays} d`, 1, 28, 1, missionDays, setMissionDays)}
+        {slider('Uninterrupted sun after landing, at least', `${minSunDays} d`, 0, 20, 1, minSunDays, setMinSunDays)}
+        {slider('Earth in view during the mission, at least', `${minEarthPct} %`, 0, 100, 5, minEarthPct, setMinEarthPct)}
+        {slider('Look ahead', `${months} months`, 1, 36, 1, months, setMonths)}
       </div>
       <div className="slip-summary">
-        <div>
-          <span className="k">Viable landing days</span>
-          <b>{okCount}</b> of {cells.length}
+        <div className="tile">
+          <div className="tile-label">Viable landing days</div>
+          <div className="tile-value num">
+            {okCount} <span className="unit">of {cells.length}</span>
+          </div>
         </div>
-        <div>
-          <span className="k">Next viable landing</span>
+        <div className="tile">
+          <div className="tile-label">Next viable landing</div>
           {firstOk?.bestHour ? (
-            <button className="link" onClick={() => onChoose(firstOk.bestHour!)}>
-              {fmtTime(firstOk.bestHour)} → {firstOk.sunDays.toFixed(1)} d of sun
+            <button type="button" className="link tile-link num" onClick={() => onChoose(firstOk.bestHour!)}>
+              {fmtTime(firstOk.bestHour, tz)}
             </button>
           ) : (
-            <b>none in range</b>
+            <div className="tile-value">None in range</div>
           )}
+          {firstOk && <div className="tile-sub num">{firstOk.sunDays.toFixed(1)} d of uninterrupted sun</div>}
         </div>
-        <div>
-          <span className="k">If you slip by a month</span>
-          {(() => {
-            const after = cells.find((c) => c.ok && c.day >= t0 + 30 * DAY)
-            return after?.bestHour ? (
-              <button className="link" onClick={() => onChoose(after.bestHour!)}>
-                next window {fmtTime(after.bestHour, 'utc', false)}
-              </button>
-            ) : (
-              <b>no window</b>
-            )
-          })()}
+        <div className="tile">
+          <div className="tile-label">If the launch slips a month</div>
+          {after?.bestHour ? (
+            <button type="button" className="link tile-link num" onClick={() => onChoose(after.bestHour!)}>
+              {fmtTime(after.bestHour, tz)}
+            </button>
+          ) : (
+            <div className="tile-value">No window</div>
+          )}
+          {after && <div className="tile-sub num">{after.sunDays.toFixed(1)} d of uninterrupted sun</div>}
         </div>
       </div>
-      <div className="cal" role="grid" aria-label="Landing date calendar">
-        <div className="cal-row head">
+      <div className="cal" role="grid" aria-label={`Landing calendar for ${site.name}: ${okCount} viable days`}>
+        <div className="cal-row head" role="row">
           <div />
           {Array.from({ length: 31 }, (_, i) => (
-            <div key={i} className="dnum">
+            <div key={i} className="dnum num" role="columnheader">
               {i + 1}
             </div>
           ))}
@@ -134,32 +147,37 @@ export default function SlipAnalyzer({ data, site, t0, onChoose }: Props) {
           const first = new Date(days[0].day).getUTCDate()
           return (
             <div className="cal-row" key={month} role="row">
-              <div className="mlabel">{new Date(days[0].day).toLocaleString('en', { month: 'short', year: 'numeric', timeZone: 'UTC' })}</div>
+              <div className="mlabel" role="rowheader">
+                {new Date(days[0].day).toLocaleString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' })}
+              </div>
               {Array.from({ length: first - 1 }, (_, i) => (
                 <div key={`p${i}`} />
               ))}
               {days.map((c) => (
                 <button
+                  type="button"
                   key={c.day}
                   className={`cell ${c.ok ? 'ok' : 'no'}`}
                   style={{ background: color(c) }}
+                  disabled={!c.bestHour}
                   onClick={() => c.bestHour && onChoose(c.bestHour)}
                   title={
                     c.bestHour
-                      ? `${fmtTime(c.bestHour)}\n${c.sunDays.toFixed(1)} days of continuous sun\nEarth in view ${c.earthPct.toFixed(0)}% of mission${c.ok ? '\n✓ meets constraints' : ''}`
-                      : `${fmtTime(c.day, 'utc', false)}: no hour with both Sun and Earth up`
+                      ? `${fmtTime(c.bestHour, tz)}: ${c.sunDays.toFixed(1)} d of uninterrupted sun, Earth in view ${c.earthPct.toFixed(0)} % of the mission${c.ok ? '. Meets all constraints.' : '.'}`
+                      : `${fmtTime(c.day, 'utc', false)}: no hour with both the Sun and Earth up`
                   }
-                  aria-label={`${fmtTime(c.day, 'utc', false)} ${c.ok ? 'viable' : 'not viable'}`}
-                />
+                  aria-label={`${fmtTime(c.day, 'utc', false)}, ${c.ok ? 'viable' : 'not viable'}${c.bestHour ? `, ${c.sunDays.toFixed(1)} days of sun` : ''}`}
+                >
+                  {c.ok && <Icon name="check" size={12} />}
+                </button>
               ))}
             </div>
           )
         })}
       </div>
       <p className="caption">
-        Each square is a UTC day. Colour = days of uninterrupted sunlight after the best touchdown hour that day (touchdown needs Sun{' '}
-        <i>and</i> Earth above the terrain). Outlined squares meet all constraints. Click a day to open it. Hourly resolution ({HOUR / 3600_000} h),
-        terrain-aware.
+        Each square is one UTC day. Brighter amber means more days of uninterrupted sunlight after the best touchdown hour (touchdown needs both
+        the Sun and Earth above the terrain). Squares with a tick meet every constraint. Select a day to open it in the explorer.
       </p>
     </section>
   )

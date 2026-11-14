@@ -1,8 +1,11 @@
 import { useMemo, useState } from 'react'
 import type { AppData, Site } from '../lib/data'
 import { DAY, makeCtx, nextEvent, summarize } from '../lib/analysis'
-import { fmtDuration, fmtTime } from '../lib/format'
+import { fmtDuration, fmtPct, fmtTime, fromInputValue, toInputValue } from '../lib/format'
+import { INFO } from '../lib/glossary'
+import { usePrefs } from '../lib/prefs'
 import Timeline from './Timeline'
+import { Icon, InfoTip } from './ui'
 
 export interface Scenario {
   key: string
@@ -19,108 +22,164 @@ interface Props {
   onOpen: (s: Scenario) => void
 }
 
-export default function Compare({ data, sites, scenarios, setScenarios, windowDays, onOpen }: Props) {
-  const [siteId, setSiteId] = useState(sites[0].id)
-  const [date, setDate] = useState(new Date(scenarios[0]?.t0 ?? Date.now()).toISOString().slice(0, 16))
+type Row = {
+  sc: Scenario
+  site: Site
+  t1: number
+  firstSunsetMs: number | null
+  sunriseMs: number | null
+} & ReturnType<typeof summarize>
 
-  const rows = useMemo(
+interface Col {
+  key: string
+  label: string
+  info: keyof typeof INFO
+  value: (r: Row) => number | null
+  fmt: (v: number) => string
+  higherIsBetter: boolean
+  deltaFmt: (d: number) => string
+}
+
+const COLS: Col[] = [
+  { key: 'sun', label: 'Sunlit', info: 'sun', value: (r) => r.sum.sunPct, fmt: fmtPct, higherIsBetter: true, deltaFmt: (d) => `${Math.abs(Math.round(d))} pts` },
+  { key: 'earth', label: 'Earth in view', info: 'earth', value: (r) => r.sum.earthPct, fmt: fmtPct, higherIsBetter: true, deltaFmt: (d) => `${Math.abs(Math.round(d))} pts` },
+  { key: 'both', label: 'Operations window', info: 'ops', value: (r) => r.sum.bothPct, fmt: fmtPct, higherIsBetter: true, deltaFmt: (d) => `${Math.abs(Math.round(d))} pts` },
+  { key: 'dark', label: 'Longest dark', info: 'dark', value: (r) => r.sum.longestDarkMs, fmt: fmtDuration, higherIsBetter: false, deltaFmt: (d) => fmtDuration(Math.abs(d)) },
+  { key: 'sunset', label: 'Sun lasts after start', info: 'sun', value: (r) => r.firstSunsetMs, fmt: fmtDuration, higherIsBetter: true, deltaFmt: (d) => fmtDuration(Math.abs(d)) },
+]
+
+export default function Compare({ data, sites, scenarios, setScenarios, windowDays, onOpen }: Props) {
+  const { tz } = usePrefs()
+  const [siteId, setSiteId] = useState(sites[0].id)
+  const [date, setDate] = useState(toInputValue(scenarios[0]?.t0 ?? data.eph.meta.startMs, tz))
+
+  const rows: Row[] = useMemo(
     () =>
       scenarios.map((sc) => {
         const site = sites.find((s) => s.id === sc.siteId) ?? sites[0]
         const ctx = makeCtx(site, data.sites.azStepDeg)
         const t1 = sc.t0 + windowDays * DAY
-        const { samples, sum } = summarize(ctx, data.eph, sc.t0, t1)
-        const firstSunset = nextEvent(ctx, data.eph, sc.t0, 'sun')
-        const sunUpAtStart = samples[0]?.sunMargin > 0
-        return { sc, site, samples, sum, t1, firstSunset, sunUpAtStart }
+        const r = summarize(ctx, data.eph, sc.t0, t1)
+        const ev = nextEvent(ctx, data.eph, sc.t0, 'sun')
+        const lit = r.samples[0]?.sunUpper > 0
+        return {
+          sc,
+          site,
+          t1,
+          ...r,
+          firstSunsetMs: lit && ev.time !== null ? ev.time - sc.t0 : lit ? null : 0,
+          sunriseMs: !lit && ev.time !== null ? ev.time - sc.t0 : null,
+        }
       }),
     [scenarios, sites, data, windowDays],
   )
 
-  const best = (f: (r: (typeof rows)[number]) => number, hiGood = true) => {
-    const vals = rows.map(f)
-    const b = hiGood ? Math.max(...vals) : Math.min(...vals)
-    return (r: (typeof rows)[number]) => (rows.length > 1 && f(r) === b ? 'best' : '')
-  }
-  const bSun = best((r) => r.sum.sunPct)
-  const bEarth = best((r) => r.sum.earthPct)
-  const bBoth = best((r) => r.sum.bothPct)
-  const bDark = best((r) => r.sum.longestDarkMs, false)
-
   const add = (e: React.FormEvent) => {
     e.preventDefault()
-    const t = Date.parse(date + ':00Z')
-    if (!isFinite(t)) return
-    setScenarios([...scenarios, { key: `${siteId}-${t}-${Math.random()}`, siteId, t0: t }])
+    const t = fromInputValue(date, tz)
+    if (!Number.isFinite(t)) return
+    setScenarios([...scenarios, { key: `${siteId}-${t}-${scenarios.length}-${Date.now()}`, siteId, t0: t }])
+  }
+
+  const best = (c: Col) => {
+    const vals = rows.map(c.value).filter((v): v is number => v !== null)
+    if (vals.length < 2) return null
+    return c.higherIsBetter ? Math.max(...vals) : Math.min(...vals)
   }
 
   return (
-    <section className="compare">
-      <form className="row addscn" onSubmit={add}>
-        <select value={siteId} onChange={(e) => setSiteId(e.target.value)} aria-label="Site to add">
-          {sites.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-        <input type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} aria-label="Start (UTC)" />
-        <button type="submit">+ Add scenario</button>
-        <span className="muted">Each row starts at its own date: bars are aligned by days since landing.</span>
-      </form>
-      <div className="table" role="table">
-        <div className="tr th" role="row">
-          <div>Scenario</div>
-          <div>Sunlit</div>
-          <div>Earth</div>
-          <div>Both</div>
-          <div>Longest dark</div>
-          <div>First {`sunset`}</div>
-          <div className="wide">First {windowDays} days</div>
-          <div />
+    <section className="compare" aria-labelledby="cmp-title">
+      <div className="view-head">
+        <div>
+          <h2 id="cmp-title">Compare sites and dates</h2>
+          <p className="lede">
+            Each row starts on its own date, and the bars line up by days since landing. The first row is the baseline: ▲ and ▼ show
+            better or worse than it.
+          </p>
         </div>
-        {rows.map((r) => (
-          <div className="tr" role="row" key={r.sc.key}>
-            <div>
-              <button className="link" onClick={() => onOpen(r.sc)}>
-                {r.site.name}
-              </button>
-              <div className="muted small">{fmtTime(r.sc.t0)}</div>
-            </div>
-            <div className={bSun(r)}>{r.sum.sunPct.toFixed(0)}%</div>
-            <div className={bEarth(r)}>{r.sum.earthPct.toFixed(0)}%</div>
-            <div className={bBoth(r)}>{r.sum.bothPct.toFixed(0)}%</div>
-            <div className={bDark(r)}>{fmtDuration(r.sum.longestDarkMs)}</div>
-            <div>
-              {r.sunUpAtStart && r.firstSunset.time !== null
-                ? `+${fmtDuration(r.firstSunset.time - r.sc.t0)}`
-                : r.sunUpAtStart || r.firstSunset.time === null
-                  ? '—'
-                  : `dark · sunrise +${fmtDuration(r.firstSunset.time - r.sc.t0)}`}
-            </div>
-            <div className="wide">
-              <Timeline
-                compact
-                relative
-                samples={r.samples}
-                t0={r.sc.t0}
-                t1={r.t1}
-                sun={r.sum.sun}
-                earth={r.sum.earth}
-                both={r.sum.both}
-              />
-            </div>
-            <div>
-              <button className="ghost" aria-label="Remove scenario" onClick={() => setScenarios(scenarios.filter((s) => s.key !== r.sc.key))}>
-                ✕
-              </button>
-            </div>
-          </div>
-        ))}
+        <form className="addscn" onSubmit={add}>
+          <label className="field">
+            <span className="field-label">Site</span>
+            <select value={siteId} onChange={(e) => setSiteId(e.target.value)}>
+              {sites.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span className="field-label">Landing ({tz === 'utc' ? 'UTC' : 'local time'})</span>
+            <input type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} />
+          </label>
+          <button type="submit" className="btn primary">
+            Add scenario
+          </button>
+        </form>
       </div>
-      <p className="caption">
-        Lanes: <span className="sun-t">■ sunlight</span> · <span className="earth-t">■ Earth in view</span> ·{' '}
-        <span className="both-t">■ both (power + direct link)</span>. Best value per column is highlighted.
+
+      {rows.length === 0 ? (
+        <div className="state-empty">
+          <p className="state-title">No scenarios yet.</p>
+          <p className="muted">Pick a site and a landing date above, then add it. Add a second one to see the differences.</p>
+        </div>
+      ) : (
+        <div className="cmp-list">
+          {rows.map((r, i) => (
+            <article className={`cmp-row ${i === 0 ? 'baseline' : ''}`} key={r.sc.key} aria-label={`${r.site.name}, ${fmtTime(r.sc.t0, tz)}`}>
+              <div className="cmp-name">
+                <button type="button" className="link" onClick={() => onOpen(r.sc)}>
+                  {r.site.name}
+                </button>
+                <span className="muted num">{fmtTime(r.sc.t0, tz)}</span>
+                {i === 0 && <span className="badge neutral">Baseline</span>}
+                {r.sunriseMs !== null && <span className="muted">Starts in darkness; sunrise after {fmtDuration(r.sunriseMs)}</span>}
+              </div>
+              <dl className="cmp-metrics">
+                {COLS.map((c) => {
+                  const v = c.value(r)
+                  const b = best(c)
+                  const base = c.value(rows[0])
+                  const d = i > 0 && v !== null && base !== null ? v - base : null
+                  const better = d !== null && d !== 0 ? (d > 0) === c.higherIsBetter : null
+                  return (
+                    <div key={c.key} className={v !== null && b !== null && v === b ? 'best' : ''}>
+                      <dt>
+                        {c.label} <InfoTip info={INFO[c.info]} label={c.label} />
+                      </dt>
+                      <dd className="num">
+                        {v === null ? '—' : c.fmt(v)}
+                        {v !== null && b !== null && v === b && <span className="sr-only"> (best)</span>}
+                      </dd>
+                      {d !== null && better !== null && Math.abs(d) > 1e-9 && (
+                        <dd className={`delta ${better ? 'up' : 'down'}`}>
+                          {better ? '▲' : '▼'} {c.deltaFmt(d)} <span className="sr-only">{better ? 'better' : 'worse'} than baseline</span>
+                        </dd>
+                      )}
+                    </div>
+                  )
+                })}
+              </dl>
+              <div className="cmp-lanes">
+                <Timeline compact relative samples={r.samples} t0={r.sc.t0} t1={r.t1} sun={r.sum.sun} earth={r.sum.earth} both={r.sum.both} label={r.site.name} />
+              </div>
+              <button
+                type="button"
+                className="btn quiet icon-only"
+                aria-label={`Remove ${r.site.name} scenario`}
+                onClick={() => setScenarios(scenarios.filter((s) => s.key !== r.sc.key))}
+              >
+                <Icon name="close" />
+              </button>
+            </article>
+          ))}
+        </div>
+      )}
+      <p className="legend-line">
+        <span className="lg lg-sun">Sunlight</span>
+        <span className="lg lg-earth">Earth in view</span>
+        <span className="lg lg-both">Both: power and direct link</span>
+        <span>The best value in each column is outlined.</span>
       </p>
     </section>
   )

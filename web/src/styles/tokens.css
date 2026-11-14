@@ -1,0 +1,104 @@
+/* "Terminator" design tokens: single source of truth. See docs/DESIGN_SYSTEM.md */
+:root,
+:root[data-theme='dark'] {
+  --c-bg: #1b1f25;
+  --c-surface: #232831;
+  --c-raised: #2d333d;
+  --c-line: #3a414d;
+  --c-line-soft: #2f3540;
+  --c-text: #ece9e2;
+  --c-text-muted: #a9a69e;
+  --c-sun: #f0a830;
+  --c-sun-tint: rgb(240 168 48 / 0.16);
+  --c-earth: #5ab0f0;
+  --c-earth-tint: rgb(90 176 240 / 0.16);
+  --c-both: #3fc7a4;
+  --c-both-tint: rgb(63 199 164 / 0.16);
+  --c-none: #7a808b;
+  --c-none-tint: rgb(122 128 139 / 0.16);
+  --c-warn: #f07f3c;
+  --c-error: #ef5a5a;
+  --c-terrain-top: #5e5a53;
+  --c-terrain-bottom: #2e2c29;
+  --c-terrain-edge: #9a948a;
+  --c-sky-day: #2a3646;
+  --c-sky-night: #12161c;
+  --c-grid: rgb(236 233 226 / 0.08);
+  --c-grid-strong: rgb(236 233 226 / 0.28);
+  --c-focus: #5ab0f0;
+  --c-on-primary: #1b1f25;
+  --c-shimmer: rgb(255 255 255 / 0.05);
+  --e-1: 0 6px 24px rgb(0 0 0 / 0.35);
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --c-bg: #e8ebee;
+  --c-surface: #f7f8f9;
+  --c-raised: #ffffff;
+  --c-line: #c9d0d8;
+  --c-line-soft: #dde2e7;
+  --c-text: #1c2127;
+  --c-text-muted: #57606b;
+  --c-sun: #9a5a00;
+  --c-sun-tint: rgb(214 140 20 / 0.16);
+  --c-earth: #0a65a8;
+  --c-earth-tint: rgb(10 101 168 / 0.12);
+  --c-both: #08765f;
+  --c-both-tint: rgb(8 118 95 / 0.12);
+  --c-none: #6b717b;
+  --c-none-tint: rgb(107 113 123 / 0.12);
+  --c-warn: #b0450d;
+  --c-error: #be2a2a;
+  --c-terrain-top: #b9b3a8;
+  --c-terrain-bottom: #8d867a;
+  --c-terrain-edge: #6f685d;
+  --c-sky-day: #dce6f0;
+  --c-sky-night: #c6cfd9;
+  --c-grid: rgb(28 33 39 / 0.08);
+  --c-grid-strong: rgb(28 33 39 / 0.3);
+  --c-focus: #0a65a8;
+  --c-on-primary: #f7f8f9;
+  --c-shimmer: rgb(0 0 0 / 0.04);
+  --e-1: 0 6px 24px rgb(20 30 40 / 0.14);
+  color-scheme: light;
+}
+
+:root {
+  --font-ui: 'Barlow', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Barlow Semi Condensed', 'Barlow', system-ui, sans-serif;
+
+  /* type scale, minor third, base 16 */
+  --fs-0: 12px;
+  --fs-1: 14px;
+  --fs-2: 16px;
+  --fs-3: 19px;
+  --fs-4: 23px;
+  --fs-5: 28px;
+  --fs-6: 34px;
+
+  /* 8 px spacing grid */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+
+  --t-fast: 150ms;
+  --t-base: 220ms;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --t-fast: 0ms;
+    --t-base: 0ms;
+  }
+}

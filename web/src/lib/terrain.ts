@@ -1,6 +1,6 @@
 // In-browser terrain horizon for custom coordinates (coarser DEMs than the
 // precomputed curated sites). Same algorithm as pipeline/horizon_mask.py.
-import type { AppData } from './data'
+import type { Terrain } from './data'
 import { D2R, R_MOON_KM, destination, enuBasis, unitVec } from './geometry'
 
 const R_M = R_MOON_KM * 1000
@@ -37,7 +37,7 @@ export function polarLatLon(x: number, y: number) {
   return { lat, lon }
 }
 
-export function makeHeight(d: AppData) {
+export function makeHeight(d: Terrain) {
   const { polar, global } = d
   const pm = polar.meta
   const gm = global.meta
@@ -54,7 +54,7 @@ export function makeHeight(d: AppData) {
   }
 }
 
-export function customHorizon(d: AppData, lat: number, lon: number, azStep = 0.5, maxKm = 250, obsM = 2) {
+export function customHorizon(d: Terrain, lat: number, lon: number, azStep = 0.5, maxKm = 250, obsM = 2) {
   const height = makeHeight(d)
   const polar = lat <= d.polar.meta.minLat + 0.3
   const step = polar ? d.polar.meta.scaleM / 1000 : 2.0

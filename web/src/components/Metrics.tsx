@@ -1,71 +1,118 @@
-import type { Sample, WindowSummary } from '../lib/analysis'
+import type { NextEvent, Sample, WindowSummary } from '../lib/analysis'
 import { panelPower } from '../lib/analysis'
-import { fmtDuration, fmtTime } from '../lib/format'
+import { fmtDeg, fmtDuration, fmtPct, fmtTime } from '../lib/format'
+import { INFO } from '../lib/glossary'
+import { usePrefs } from '../lib/prefs'
+import { Chip, InfoTip } from './ui'
 
 interface Props {
   now: Sample
-  sunEvent: { time: number | null; kind: string }
-  earthEvent: { time: number | null; kind: string }
+  sunEvent: NextEvent
+  earthEvent: NextEvent
   sum: WindowSummary
   windowDays: number
 }
 
-function Countdown({ ev, now }: { ev: { time: number | null; kind: string }; now: number }) {
-  if (ev.time === null) return <span className="muted">none in range</span>
+function Countdown({ ev, now }: { ev: NextEvent; now: number }) {
+  const { tz } = usePrefs()
+  if (ev.time === null) return <span className="muted">no {ev.kind.toLowerCase()} before the data ends</span>
   return (
-    <span title={fmtTime(ev.time)}>
-      {fmtDuration(ev.time - now)} <span className="muted">· {fmtTime(ev.time)}</span>
+    <span>
+      {ev.kind} in <b className="num">{fmtDuration(ev.time - now)}</b>
+      <span className="muted num"> at {fmtTime(ev.time, tz)}</span>
     </span>
   )
 }
 
-export default function Metrics({ now, sunEvent, earthEvent, sum, windowDays }: Props) {
-  const sunUp = now.sunMargin > 0
-  const earthUp = now.earthMargin > 0
-  const pv = panelPower(now, 'vertical')
-  const verdict =
-    sum.bothPct >= 50 ? 'good' : sum.bothPct >= 25 ? 'marginal' : 'poor'
+/** Status strip: the at-a-glance answer, sitting directly above the hero chart. */
+export function StatusStrip({ now, sunEvent, earthEvent }: Omit<Props, 'sum' | 'windowDays'>) {
+  const sunLit = now.sunUpper > 0
+  const earthUp = now.earthUpper > 0
+  const partial = sunLit && now.sunFrac < 0.999
   return (
-    <div className="metrics">
-      <div className={`card status ${sunUp ? 'on sun-on' : 'off'}`}>
-        <div className="k">Sun</div>
-        <div className="v">{sunUp ? (now.sunFrac < 1 ? `${Math.round(now.sunFrac * 100)}% of disc visible` : 'Fully lit') : 'Dark'}</div>
-        <div className="d">
-          {now.sunEl.toFixed(2)}° elevation · {now.sunMargin >= 0 ? '+' : ''}
-          {now.sunMargin.toFixed(2)}° vs terrain
+    <div className="status-strip" aria-live="polite">
+      <div className="status-item">
+        {sunLit ? (
+          <Chip kind="sun">{partial ? `Partly sunlit, ${fmtPct(now.sunFrac * 100)} of disc` : 'Sunlit'}</Chip>
+        ) : (
+          <Chip kind="none" icon="sun">
+            Dark
+          </Chip>
+        )}
+        <Countdown ev={sunEvent} now={now.t} />
+      </div>
+      <div className="status-item">
+        {earthUp ? (
+          <Chip kind="earth">Earth link ✓</Chip>
+        ) : (
+          <Chip kind="none" icon="earth">
+            No Earth link
+          </Chip>
+        )}
+        <Countdown ev={earthEvent} now={now.t} />
+      </div>
+      {sunLit && earthUp ? (
+        <Chip kind="both">Power and link</Chip>
+      ) : (
+        <Chip kind="warn">{!sunLit && !earthUp ? 'No power, no link' : !sunLit ? 'On batteries' : 'No direct link'}</Chip>
+      )}
+    </div>
+  )
+}
+
+export default function Metrics({ now, sum, windowDays }: Props) {
+  const pv = panelPower(now)
+  return (
+    <div className="tiles">
+      <div className="tile">
+        <div className="tile-label">
+          Sun above terrain <InfoTip info={INFO.sun} label="Sun above terrain" />
         </div>
-        <div className="d">
-          {sunEvent.kind} in <Countdown ev={sunEvent} now={now.t} />
+        <div className="tile-value num">{fmtDeg(now.sunMargin, true)}</div>
+        <div className="tile-sub num">
+          {fmtDeg(now.sunEl)} above the smooth horizon, terrain {fmtDeg(now.sunHorizon)}
         </div>
       </div>
-      <div className={`card status ${earthUp ? 'on earth-on' : 'off'}`}>
-        <div className="k">Earth (direct link)</div>
-        <div className="v">{earthUp ? 'In view' : 'Blocked'}</div>
-        <div className="d">
-          {now.earthEl.toFixed(2)}° elevation · {now.earthMargin >= 0 ? '+' : ''}
-          {now.earthMargin.toFixed(2)}° vs terrain
+      <div className="tile">
+        <div className="tile-label">
+          Earth above terrain <InfoTip info={INFO.earth} label="Earth above terrain" />
         </div>
-        <div className="d">
-          {earthEvent.kind} in <Countdown ev={earthEvent} now={now.t} />
+        <div className="tile-value num">{fmtDeg(now.earthMargin, true)}</div>
+        <div className="tile-sub num">
+          {fmtDeg(now.earthEl)} elevation, {fmtPct(now.earthFrac * 100)} of disc visible
         </div>
       </div>
-      <div className="card">
-        <div className="k">Power now</div>
-        <div className="v">{pv.toFixed(0)} W/m²</div>
-        <div className="d">vertical sun-tracking panel, 30% cells</div>
-        <div className="d">window avg {sum.avgPowerVertical.toFixed(0)} W/m²</div>
+      <div className="tile">
+        <div className="tile-label">
+          Solar power now <InfoTip info={INFO.power} label="solar power" />
+        </div>
+        <div className="tile-value num">
+          {Math.round(pv)} <span className="unit">W/m²</span>
+        </div>
+        <div className="tile-sub num">window average {Math.round(sum.avgPowerVertical)} W/m²</div>
       </div>
-      <div className={`card verdict ${verdict}`}>
-        <div className="k">Next {windowDays} days</div>
-        <div className="v">
-          {sum.bothPct.toFixed(0)}% <span className="unit">ops time</span>
+      <div className="tile">
+        <div className="tile-label">
+          Operations window, next {windowDays} d <InfoTip info={INFO.ops} label="operations window" />
         </div>
-        <div className="d">
-          ☀ {sum.sunPct.toFixed(0)}% sunlit · 🜨 {sum.earthPct.toFixed(0)}% Earth in view
+        <div className="tile-value num">{fmtPct(sum.bothPct)}</div>
+        <div className="tile-sub num">
+          sunlit {fmtPct(sum.sunPct)}, Earth in view {fmtPct(sum.earthPct)}
         </div>
-        <div className="d">
-          longest dark {fmtDuration(sum.longestDarkMs)} · no-link {fmtDuration(sum.longestNoLinkMs)}
+      </div>
+      <div className="tile">
+        <div className="tile-label">
+          Longest dark period <InfoTip info={INFO.dark} label="longest dark period" />
         </div>
+        <div className="tile-value num">{fmtDuration(sum.longestDarkMs)}</div>
+        <div className="tile-sub">within the {windowDays}-day window</div>
+      </div>
+      <div className="tile">
+        <div className="tile-label">
+          Longest without Earth link <InfoTip info={INFO.noLink} label="longest period without Earth link" />
+        </div>
+        <div className="tile-value num">{fmtDuration(sum.longestNoLinkMs)}</div>
+        <div className="tile-sub">within the {windowDays}-day window</div>
       </div>
     </div>
   )

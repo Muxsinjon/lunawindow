@@ -1,15 +1,45 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Compare lunar landing sites and dates: terrain-aware Sun and Earth visibility for power and direct-to-Earth communication." />
     <title>Lunar Landing Site Navigator</title>
+    <meta
+      name="description"
+      content="Compare lunar landing sites and dates in seconds: when each site gets sunlight and a direct line to Earth, using real LRO LOLA terrain and JPL Horizons ephemerides."
+    />
+    <meta name="theme-color" content="#1b1f25" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32.png" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Lunar Landing Site Navigator" />
+    <meta
+      property="og:description"
+      content="Terrain-aware Sun and Earth visibility for lunar landing sites. Built for the NASA Space Apps Challenge 2026 with JPL Horizons and LRO LOLA data."
+    />
+    <meta property="og:image" content="./og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="A lunar horizon silhouette with the Sun about to set behind a ridge and Earth above the horizon." />
+    <meta name="twitter:card" content="summary_large_image" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600&family=Barlow:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="preload" href="./data/ephem.bin" as="fetch" type="application/octet-stream" crossorigin />
+    <script>
+      try {
+        if (localStorage.getItem('llsn.theme') === 'light') document.documentElement.dataset.theme = 'light'
+      } catch (e) {}
+    </script>
   </head>
   <body>
+    <noscript>This tool needs JavaScript to compute Sun and Earth positions.</noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
