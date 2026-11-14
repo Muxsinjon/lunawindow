@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react'
 import type { AppData, Site } from '../lib/data'
 import { DAY, makeCtx, nextEvent, summarize } from '../lib/analysis'
-import { fmtDuration, fmtPct, fmtTime, fromInputValue, toInputValue } from '../lib/format'
+import { fmtDuration, fmtHoursApprox, fmtPct, fmtTime, fromInputValue, toInputValue } from '../lib/format'
 import { INFO } from '../lib/glossary'
 import { usePrefs } from '../lib/prefs'
+import { useStore } from '../lib/store'
+import { signal } from '../lib/visibility'
 import Timeline from './Timeline'
 import { Icon, InfoTip } from './ui'
 
@@ -31,6 +33,7 @@ type Row = {
   sc: Scenario
   site: Site
   t1: number
+  outside: boolean
   firstSunsetMs: number | null
   sunriseMs: number | null
 } & ReturnType<typeof summarize>
@@ -63,7 +66,7 @@ const COLS: Col[] = [
     label: 'Sun lasts after start',
     info: 'sun',
     value: (r) => r.firstSunsetMs,
-    fmt: fmtDuration,
+    fmt: fmtHoursApprox,
     higherIsBetter: true,
     deltaFmt: (d) => fmtDuration(Math.abs(d)),
   },
@@ -71,6 +74,8 @@ const COLS: Col[] = [
 
 export default function Compare({ data, sites, scenarios, setScenarios, windowDays, onOpen }: Props) {
   const { tz } = usePrefs()
+  const { s: st } = useStore()
+  const vis = st.vis
   const [siteId, setSiteId] = useState(sites[0].id)
   const [date, setDate] = useState(toInputValue(scenarios[0]?.t0 ?? data.eph.meta.startMs, tz))
 
@@ -80,19 +85,21 @@ export default function Compare({ data, sites, scenarios, setScenarios, windowDa
         const site = sites.find((s) => s.id === sc.siteId) ?? sites[0]
         const ctx = makeCtx(site, data.sites.azStepDeg)
         const t1 = sc.t0 + windowDays * DAY
-        const r = summarize(ctx, data.eph, sc.t0, t1)
-        const ev = nextEvent(ctx, data.eph, sc.t0, 'sun')
-        const lit = r.samples[0]?.sunUpper > 0
+        const outside = sc.t0 < data.eph.meta.startMs || t1 > data.eph.endMs
+        const r = summarize(ctx, data.eph, sc.t0, outside ? sc.t0 : t1, vis)
+        const ev = nextEvent(ctx, data.eph, sc.t0, 'sun', vis)
+        const lit = r.samples[0] ? signal(r.samples[0], 'sun', vis) > 0 : false
         return {
           sc,
           site,
           t1,
+          outside,
           ...r,
           firstSunsetMs: lit && ev.time !== null ? ev.time - sc.t0 : null,
           sunriseMs: !lit && ev.time !== null ? ev.time - sc.t0 : null,
         }
       }),
-    [scenarios, sites, data, windowDays],
+    [scenarios, sites, data, windowDays, vis],
   )
 
   const add = (e: React.FormEvent) => {
@@ -103,7 +110,10 @@ export default function Compare({ data, sites, scenarios, setScenarios, windowDa
   }
 
   const best = (c: Col) => {
-    const vals = rows.map(c.value).filter((v): v is number => v !== null)
+    const vals = rows
+      .filter((r) => !r.outside)
+      .map(c.value)
+      .filter((v): v is number => v !== null)
     if (vals.length < 2) return null
     return c.higherIsBetter ? Math.max(...vals) : Math.min(...vals)
   }
@@ -112,7 +122,7 @@ export default function Compare({ data, sites, scenarios, setScenarios, windowDa
     <section className="compare" aria-labelledby="cmp-title">
       <div className="view-head">
         <div>
-          <h2 id="cmp-title">Compare sites and dates</h2>
+          <h2 id="cmp-title">Same site, different dates</h2>
           <p className="lede">
             Each row starts on its own date, and the bars line up by days since landing. The first row is the baseline: ▲ and ▼ show better
             or worse than it.
@@ -158,13 +168,18 @@ export default function Compare({ data, sites, scenarios, setScenarios, windowDa
                 </button>
                 <span className="muted num">{fmtTime(r.sc.t0, tz)}</span>
                 {i === 0 && <span className="badge neutral">Baseline</span>}
-                {r.sunriseMs !== null && <span className="muted">Starts in darkness; sunrise after {fmtDuration(r.sunriseMs)}</span>}
+                {r.outside && (
+                  <span className="field-error">Outside the supported data (2023–2031): no values are shown rather than extrapolated.</span>
+                )}
+                {!r.outside && r.sunriseMs !== null && (
+                  <span className="muted">Starts in darkness; sunrise after {fmtHoursApprox(r.sunriseMs)}</span>
+                )}
               </div>
               <dl className="cmp-metrics">
                 {COLS.map((c) => {
-                  const v = c.value(r)
+                  const v = r.outside ? null : c.value(r)
                   const b = best(c)
-                  const base = c.value(rows[0])
+                  const base = rows[0].outside ? null : c.value(rows[0])
                   const d = i > 0 && v !== null && base !== null ? v - base : null
                   const better = d !== null && d !== 0 ? d > 0 === c.higherIsBetter : null
                   return (

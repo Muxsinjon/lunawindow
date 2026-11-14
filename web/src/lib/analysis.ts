@@ -135,6 +135,10 @@ export interface NextEvent {
 export function nextEvent(ctx: SiteCtx, eph: Ephemeris, t: number, body: Body, model: VisModel = 'terrain', maxDays = 400): NextEvent {
   const m = eph.meta
   let i = Math.max(0, Math.floor((t - m.startMs) / m.stepMs))
+  if (i > m.count - 1) {
+    // outside the supported data: no event can be determined (never extrapolate)
+    return { kind: body === 'sun' ? 'Sunset' : 'Earthset', time: null, after: null }
+  }
   const [e0, s0] = rowVec(eph, i)
   const up = signal(evalVectors(ctx, 0, e0, s0), body, model) > 0
   const kind: NextEvent['kind'] = body === 'sun' ? (up ? 'Sunset' : 'Sunrise') : up ? 'Earthset' : 'Earthrise'
@@ -150,7 +154,12 @@ export function nextEvent(ctx: SiteCtx, eph: Ephemeris, t: number, body: Body, m
 }
 
 /** Power per m² of panel, 30 % cells, using the visible fraction of the solar disc. */
-export function panelPower(s: Sample, orientation: 'vertical' | 'horizontal' = 'vertical', eff = PANEL_EFFICIENCY, model: VisModel = 'terrain') {
+export function panelPower(
+  s: Sample,
+  orientation: 'vertical' | 'horizontal' = 'vertical',
+  eff = PANEL_EFFICIENCY,
+  model: VisModel = 'terrain',
+) {
   const el = (Math.max(0, s.sunEl) * Math.PI) / 180
   const cosInc = orientation === 'vertical' ? Math.cos(el) : Math.sin(el)
   const frac = model === 'terrain' ? s.sunFrac : s.sunEl > 0 ? 1 : 0

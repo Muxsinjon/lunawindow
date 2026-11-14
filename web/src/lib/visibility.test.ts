@@ -23,9 +23,19 @@ describe('visibility models', () => {
 
 describe('half-open sampled intervals', () => {
   it('each sample covers [t, t + 1 h)', () => {
-    const iv = runIntervals(5, (i) => i * H, H, (i) => i >= 1 && i <= 2)
+    const iv = runIntervals(
+      5,
+      (i) => i * H,
+      H,
+      (i) => i >= 1 && i <= 2,
+    )
     expect(iv).toEqual([{ start: 1 * H, end: 3 * H }])
-    const tail = runIntervals(3, (i) => i * H, H, () => true)
+    const tail = runIntervals(
+      3,
+      (i) => i * H,
+      H,
+      () => true,
+    )
     expect(tail).toEqual([{ start: 0, end: 3 * H }])
   })
   it('longest run and number of runs', () => {
@@ -38,7 +48,11 @@ describe('half-open sampled intervals', () => {
       s(2, -1, -1, 5, 5), // earth only
       s(3, -1, -1, -1, -1), // neither
     ]
-    const r = runsSummary(flagsFromSamples(samples, 'terrain'), samples.map((x) => x.t), H)
+    const r = runsSummary(
+      flagsFromSamples(samples, 'terrain'),
+      samples.map((x) => x.t),
+      H,
+    )
     expect([r.bothPct, r.sunOnlyPct, r.earthOnlyPct, r.neitherPct]).toEqual([25, 25, 25, 25])
     expect(r.bothPct + r.sunOnlyPct + r.earthOnlyPct + r.neitherPct).toBe(100)
     expect(r.bothPct).toBeLessThanOrEqual(Math.min(r.sunPct, r.earthPct))

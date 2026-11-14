@@ -1,4 +1,5 @@
 import type { AppData } from '../lib/data'
+import { fmtLat, fmtLon, fmtTime } from '../lib/format'
 import MissionCheck from './MissionCheck'
 
 const LINKS = {
@@ -14,7 +15,7 @@ export default function About({ data }: { data: AppData }) {
   const v = data.validation
   return (
     <article className="about prose" aria-labelledby="about-title">
-      <h2 id="about-title">About the data and methods</h2>
+      <h2 id="about-title">About LunaWindow: data and methodology</h2>
       <p className="lede">
         Every number in this tool comes from free NASA data and is checked against independent NASA references. Here is exactly how, and
         where it can be wrong.
@@ -24,8 +25,9 @@ export default function About({ data }: { data: AppData }) {
       <ol>
         <li>
           <b>Where are the Sun and Earth?</b> We asked NASA/JPL Horizons (DE441) for the sub-solar and sub-Earth points on the Moon every
-          hour from 2023 to 2031, in the Moon’s body-fixed frame. That is a 1.9 MB file from which the browser computes the Sun’s and
-          Earth’s azimuth and elevation for any lunar coordinate, including libration (Earth’s monthly wobble in the lunar sky).
+          hour from 2023 to 2031, in the Moon’s body-fixed frame (shipped every 6 h and interpolated back to hourly in the browser, adding
+          no measurable error). From these the browser computes the Sun’s and Earth’s azimuth and elevation for any lunar coordinate,
+          including libration (Earth’s monthly wobble in the lunar sky).
         </li>
         <li>
           <b>Where is the real horizon?</b> At the south pole the Sun skims the horizon, often less than 2° up, so a smooth-sphere horizon
@@ -33,10 +35,42 @@ export default function About({ data }: { data: AppData }) {
           curved Moon, for an observer {data.sites.observerHeightM} m above the ground.
         </li>
         <li>
-          <b>What does it mean for a mission?</b> Sunrise and sunset happen when the upper edge of the disc crosses that terrain line. From
-          the windows we derive countdowns, percentages, the longest dark period, solar power and the landing calendar.
+          <b>What does it mean for a mission?</b> Visibility is evaluated on hourly samples. From the resulting windows we derive the
+          percentages, the longest darkness and blackout, interruptions, and the mission-window search.
         </li>
       </ol>
+
+      <h3>Two visibility models (switch in the header)</h3>
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Model</th>
+            <th scope="col">Sun or Earth counts as visible when…</th>
+            <th scope="col">Use it for</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Terrain-aware (default)</td>
+            <td>the upper edge of its disc is above the LRO LOLA terrain horizon in that direction (240 m terrain for listed sites)</td>
+            <td>realistic sunlight and line of sight at the south pole, where terrain decides</td>
+          </tr>
+          <tr>
+            <td>Geometric 0°</td>
+            <td>
+              its centre is above the smooth geometric horizon (elevation above 0°). Local terrain obstruction is not included, and
+              partially visible discs are not resolved
+            </td>
+            <td>the simplified reference model, comparable with standard ephemeris tools</td>
+          </tr>
+        </tbody>
+      </table>
+      <h3>Sampling and time resolution</h3>
+      <p>
+        Positions are evaluated every hour. Each sample covers the following hour (half-open intervals), so a duration is the number of
+        qualifying samples × 1 h. Rise and set times are therefore reported as a one-hour window (“between 03:00 and 04:00 UTC”), never to
+        the minute. All times are stored in UTC; the header can show local time instead.
+      </p>
 
       <h3>Datasets</h3>
       <table>
@@ -116,6 +150,37 @@ export default function About({ data }: { data: AppData }) {
       )}
       <MissionCheck v={v} />
 
+      <h3>Supported sites and dates</h3>
+      <p>
+        Dates: {fmtTime(data.eph.meta.startMs, 'utc', false)} to {fmtTime(data.eph.endMs, 'utc', false)} (UTC). Dates outside this range are
+        adjusted with an explanation. Custom coordinates are supported with coarser in-browser terrain.
+      </p>
+      <div className="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Site</th>
+              <th scope="col">Latitude</th>
+              <th scope="col">Longitude</th>
+              <th scope="col">Source</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.sites.sites.map((x) => (
+              <tr key={x.id}>
+                <td>
+                  {x.name}
+                  {x.verify ? ' (needs verification)' : ''}
+                </td>
+                <td className="num">{fmtLat(x.lat)}</td>
+                <td className="num">{fmtLon(x.lon)}</td>
+                <td>{x.source}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
       <h3>Assumptions</h3>
       <ul>
         <li>The Moon is a sphere of radius 1737.4 km, carrying LOLA terrain. There is no atmosphere, so no refraction.</li>
@@ -128,6 +193,14 @@ export default function About({ data }: { data: AppData }) {
       </ul>
 
       <h3>Limitations and known uncertainty</h3>
+      <p>Geometric or terrain-aware visibility does not by itself establish:</p>
+      <ul>
+        <li>guaranteed solar-panel power generation or sufficient battery capacity;</li>
+        <li>successful radio communication (a ground station must also see the Moon, with link margin);</li>
+        <li>safe landing conditions, slope or surface stability;</li>
+        <li>thermal survivability or radiation protection;</li>
+        <li>access to lunar water ice.</li>
+      </ul>
       <ul>
         <li>
           Terrain resolution is 240 m for curated polar sites, 960 m for custom polar points and about 7.6 km elsewhere. Nearby slopes and

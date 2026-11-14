@@ -1,30 +1,20 @@
 import { useState } from 'react'
 import type { TimeZoneMode } from '../lib/format'
 import type { Mode } from '../lib/prefs'
-import type { Theme } from '../lib/theme'
-import type { Tab } from '../lib/url'
+import type { Workspace } from '../lib/state'
+import { useStore } from '../lib/store'
+import type { VisModel } from '../lib/visibility'
 import { Icon } from './ui'
 
-interface Props {
-  tab: Tab
-  setTab: (t: Tab) => void
-  mode: Mode
-  setMode: (m: Mode) => void
-  tz: TimeZoneMode
-  setTz: (t: TimeZoneMode) => void
-  theme: Theme
-  setTheme: (t: Theme) => void
-}
-
-const TAB_LABEL: Record<Tab, string> = {
-  site: 'Explore a site',
-  compare: 'Compare',
-  slip: 'Landing calendar',
-  about: 'Data and methods',
-}
+const NAV: [Workspace, string][] = [
+  ['compare', 'Explore & Compare'],
+  ['finder', 'Mission Window Finder'],
+  ['surface', 'Surface View'],
+  ['about', 'About & methodology'],
+]
 
 export function Mark() {
-  // Original mark: a horizon line with a low Sun and a crescent Earth. No agency insignia.
+  // Original mark: a horizon with a low Sun and Earth. No agency insignia.
   return (
     <svg viewBox="0 0 32 32" width="32" height="32" aria-hidden className="mark">
       <rect width="32" height="32" rx="8" fill="var(--c-raised)" />
@@ -35,7 +25,37 @@ export function Mark() {
   )
 }
 
-export default function Header({ tab, setTab, mode, setMode, tz, setTz, theme, setTheme }: Props) {
+function Seg<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string
+  value: T
+  options: [T, string][]
+  onChange: (v: T) => void
+}) {
+  return (
+    <div className="seg" role="radiogroup" aria-label={label}>
+      {options.map(([v, l]) => (
+        <button
+          key={v}
+          type="button"
+          role="radio"
+          aria-checked={value === v}
+          className={value === v ? 'on' : ''}
+          onClick={() => onChange(v)}
+        >
+          {l}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+export default function Header() {
+  const { s, set, theme, setTheme } = useStore()
   const [copied, setCopied] = useState<'idle' | 'ok' | 'fail'>('idle')
   const copy = async () => {
     try {
@@ -48,35 +68,54 @@ export default function Header({ tab, setTab, mode, setMode, tz, setTz, theme, s
   }
   return (
     <header className="topbar">
-      <div className="brand">
+      <button type="button" className="brand" onClick={() => set({ ws: 'home' })} aria-label="LunaWindow home">
         <Mark />
-        <div>
-          <h1>Lunar Landing Site Navigator</h1>
-          <p>See when a landing site on the Moon gets sunlight and a direct line to Earth, using the real terrain.</p>
-        </div>
-      </div>
+        <span>
+          <span className="brand-name">LunaWindow</span>
+          <span className="brand-tag">Explore. Compare. Plan. Experience.</span>
+        </span>
+      </button>
+      <nav className="tabs" aria-label="Workspaces">
+        {NAV.map(([k, label]) => (
+          <button
+            key={k}
+            type="button"
+            aria-current={s.ws === k ? 'page' : undefined}
+            className={s.ws === k ? 'on' : ''}
+            onClick={() => set({ ws: k })}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
       <div className="top-controls">
-        <div className="seg" role="radiogroup" aria-label="Audience mode">
-          {(['planner', 'explore'] as Mode[]).map((m) => (
-            <button
-              key={m}
-              type="button"
-              role="radio"
-              aria-checked={mode === m}
-              className={mode === m ? 'on' : ''}
-              onClick={() => setMode(m)}
-            >
-              {m === 'planner' ? 'Planner' : 'Explore'}
-            </button>
-          ))}
-        </div>
-        <div className="seg" role="radiogroup" aria-label="Time zone">
-          {(['utc', 'local'] as TimeZoneMode[]).map((z) => (
-            <button key={z} type="button" role="radio" aria-checked={tz === z} className={tz === z ? 'on' : ''} onClick={() => setTz(z)}>
-              {z === 'utc' ? 'UTC' : 'Local time'}
-            </button>
-          ))}
-        </div>
+        <Seg<VisModel>
+          label="Visibility model"
+          value={s.vis}
+          onChange={(v) => set({ vis: v })}
+          options={[
+            ['terrain', 'Terrain-aware'],
+            ['geometric', 'Geometric 0°'],
+          ]}
+        />
+        <Seg<Mode>
+          label="Audience"
+          value={s.mode}
+          onChange={(v) => set({ mode: v })}
+          options={[
+            ['planner', 'Planner'],
+            ['explore', 'Explain'],
+          ]}
+        />
+        <Seg<TimeZoneMode>
+          label="Time zone"
+          value={s.tz}
+          onChange={(v) => set({ tz: v })}
+          options={[
+            ['utc', 'UTC'],
+            ['local', 'Local'],
+          ]}
+        />
         <button
           type="button"
           className="btn quiet icon-only"
@@ -91,22 +130,6 @@ export default function Header({ tab, setTab, mode, setMode, tz, setTz, theme, s
           {copied === 'ok' ? 'Link copied' : copied === 'fail' ? 'Copy failed: use the address bar' : 'Copy link'}
         </button>
       </div>
-      <nav className="tabs" role="tablist" aria-label="Views">
-        {(Object.keys(TAB_LABEL) as Tab[]).map((k) => (
-          <button
-            key={k}
-            type="button"
-            role="tab"
-            id={`tab-${k}`}
-            aria-controls="view-panel"
-            aria-selected={tab === k}
-            className={tab === k ? 'on' : ''}
-            onClick={() => setTab(k)}
-          >
-            {TAB_LABEL[k]}
-          </button>
-        ))}
-      </nav>
     </header>
   )
 }

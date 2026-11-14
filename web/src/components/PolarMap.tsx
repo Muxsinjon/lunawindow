@@ -9,17 +9,20 @@ import { InfoTip, Skeleton } from './ui'
 
 interface Props {
   sites: Site[]
-  selectedId: string
+  siteA: string
+  siteB: string
   theme: Theme
-  onPick: (lat: number, lon: number, terrain: Terrain) => void
-  onSelect: (id: string) => void
+  /** a click on the map at (lat, lon) for the chosen slot */
+  onPick: (lat: number, lon: number, slot: 'A' | 'B') => void
+  onSelect: (id: string, slot: 'A' | 'B') => void
 }
 
 type Layer = 'sun' | 'earth' | 'terrain'
 const EXTENTS = { '80° S': -80, '85° S': -85, '88° S': -88 } as const
 type Extent = keyof typeof EXTENTS
 
-export default function PolarMap({ sites, selectedId, theme, onPick, onSelect }: Props) {
+export default function PolarMap({ sites, siteA, siteB, theme, onPick, onSelect }: Props) {
+  const [target, setTarget] = useState<'A' | 'B'>('A')
   const [terrain, setTerrain] = useState<Terrain | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [requested, setRequested] = useState(false)
@@ -124,7 +127,7 @@ export default function PolarMap({ sites, selectedId, theme, onPick, onSelect }:
     const x = (((e.clientX - r.left) / r.width) * size - halfPx) * scaleM
     const y = -(((e.clientY - r.top) / r.height) * size - halfPx) * scaleM
     const { lat, lon } = polarLatLon(x, y)
-    if (lat <= EXTENTS[extent] + 0.01) onPick(lat, normalizeLon360(lon), terrain)
+    if (lat <= EXTENTS[extent] + 0.01) onPick(lat, normalizeLon360(lon), target)
   }
 
   const visible = sites.filter((s) => s.lat <= EXTENTS[extent])
@@ -154,6 +157,23 @@ export default function PolarMap({ sites, selectedId, theme, onPick, onSelect }:
           </button>
         ))}
       </div>
+      <div className="row between">
+        <span className="hint">Clicking a pin or the map sets</span>
+        <div className="seg" role="radiogroup" aria-label="Map click sets">
+          {(['A', 'B'] as const).map((x) => (
+            <button
+              key={x}
+              type="button"
+              role="radio"
+              aria-checked={target === x}
+              className={target === x ? 'on' : ''}
+              onClick={() => setTarget(x)}
+            >
+              Site {x}
+            </button>
+          ))}
+        </div>
+      </div>
       {error ? (
         <div className="state-error small" role="alert">
           <p>Map data didn't load: {error}</p>
@@ -170,23 +190,26 @@ export default function PolarMap({ sites, selectedId, theme, onPick, onSelect }:
       ) : (
         <div className="mapbox" onClick={click} title="Click to analyse any spot">
           <canvas ref={canvas} aria-label={`South polar map to ${extent}. Click anywhere to analyse that spot.`} role="img" />
-          {visible.map((s) => {
-            const { fx, fy } = toFrac(s.lat, s.lon)
+          {visible.map((x) => {
+            const { fx, fy } = toFrac(x.lat, x.lon)
+            const slot = x.id === siteA ? 'A' : x.id === siteB ? 'B' : null
             return (
               <button
-                key={s.id}
+                key={x.id}
                 type="button"
-                className={`pin ${s.id === selectedId ? 'sel' : ''} ${s.custom ? 'custom' : ''}`}
+                className={`pin ${slot ? `pin-${slot.toLowerCase()}` : ''} ${x.custom ? 'custom' : ''}`}
                 style={{ left: `${fx * 100}%`, top: `${fy * 100}%` }}
                 onClick={(e) => {
                   e.stopPropagation()
-                  onSelect(s.id)
+                  onSelect(x.id, target)
                 }}
-                // pointer shortcut only: the "Landing site" list is the accessible equivalent (WCAG 2.5.8)
+                // pointer shortcut only: the Site A / Site B lists are the accessible equivalent (WCAG 2.5.8)
                 tabIndex={-1}
                 aria-hidden
-                title={s.name}
-              />
+                title={`${x.name}${slot ? ` (Site ${slot})` : ''}`}
+              >
+                {slot && <span className="pin-letter">{slot}</span>}
+              </button>
             )
           })}
           <span className="maplabel n">0°</span>
@@ -202,7 +225,9 @@ export default function PolarMap({ sites, selectedId, theme, onPick, onSelect }:
           <span>100 % of the time</span>
         </div>
       )}
-      <p className="hint">Click anywhere on the map to analyse that exact spot. A few hundred metres can change everything.</p>
+      <p className="hint">
+        Clicking an empty spot analyses those exact coordinates with LOLA terrain. A few hundred metres can change everything.
+      </p>
     </section>
   )
 }

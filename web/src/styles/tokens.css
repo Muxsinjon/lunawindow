@@ -1,13 +1,16 @@
 /* "Terminator" design tokens: single source of truth. See docs/DESIGN_SYSTEM.md */
 :root,
 :root[data-theme='dark'] {
-  --c-bg: #1b1f25;
-  --c-surface: #232831;
-  --c-raised: #2d333d;
-  --c-line: #3a414d;
-  --c-line-soft: #2f3540;
-  --c-text: #ece9e2;
-  --c-text-muted: #a9a69e;
+  --c-bg: #0d1220;
+  --c-surface: #141b2b;
+  --c-raised: #1d2638;
+  --c-line: #2b3650;
+  --c-line-soft: #212a3d;
+  --c-text: #e8edf5;
+  --c-text-muted: #9ba7ba;
+  --c-accent: #22d3ee;
+  --c-site-a: #f4f1ea;
+  --c-site-b: #e08ac8;
   --c-sun: #f0a830;
   --c-sun-tint: rgb(240 168 48 / 0.16);
   --c-earth: #5ab0f0;
@@ -21,25 +24,28 @@
   --c-terrain-top: #5e5a53;
   --c-terrain-bottom: #2e2c29;
   --c-terrain-edge: #9a948a;
-  --c-sky-day: #2a3646;
-  --c-sky-night: #12161c;
-  --c-grid: rgb(236 233 226 / 0.08);
-  --c-grid-strong: rgb(236 233 226 / 0.28);
-  --c-focus: #5ab0f0;
-  --c-on-primary: #1b1f25;
+  --c-sky-day: #05070b;
+  --c-sky-night: #05070b;
+  --c-grid: rgb(232 237 245 / 0.08);
+  --c-grid-strong: rgb(232 237 245 / 0.3);
+  --c-focus: #22d3ee;
+  --c-on-primary: #0d1220;
   --c-shimmer: rgb(255 255 255 / 0.05);
   --e-1: 0 6px 24px rgb(0 0 0 / 0.35);
   color-scheme: dark;
 }
 
 :root[data-theme='light'] {
-  --c-bg: #e8ebee;
-  --c-surface: #f7f8f9;
+  --c-bg: #e7ecf3;
+  --c-surface: #f7f9fc;
   --c-raised: #ffffff;
-  --c-line: #c9d0d8;
-  --c-line-soft: #dde2e7;
-  --c-text: #1c2127;
-  --c-text-muted: #57606b;
+  --c-line: #c6cfdc;
+  --c-line-soft: #dce3ec;
+  --c-text: #111827;
+  --c-text-muted: #4f5b6d;
+  --c-accent: #0e7490;
+  --c-site-a: #1f2937;
+  --c-site-b: #a3367f;
   --c-sun: #9a5a00;
   --c-sun-tint: rgb(214 140 20 / 0.16);
   --c-earth: #0a65a8;
@@ -53,12 +59,12 @@
   --c-terrain-top: #b9b3a8;
   --c-terrain-bottom: #8d867a;
   --c-terrain-edge: #6f685d;
-  --c-sky-day: #dce6f0;
-  --c-sky-night: #c6cfd9;
-  --c-grid: rgb(28 33 39 / 0.08);
-  --c-grid-strong: rgb(28 33 39 / 0.3);
-  --c-focus: #0a65a8;
-  --c-on-primary: #f7f8f9;
+  --c-sky-day: #05070b;
+  --c-sky-night: #05070b;
+  --c-grid: rgb(17 24 39 / 0.08);
+  --c-grid-strong: rgb(17 24 39 / 0.3);
+  --c-focus: #0e7490;
+  --c-on-primary: #f7f9fc;
   --c-shimmer: rgb(0 0 0 / 0.04);
   --e-1: 0 6px 24px rgb(20 30 40 / 0.14);
   color-scheme: light;

@@ -65,3 +65,31 @@ export function fromInputValue(v: string, mode: TimeZoneMode): number {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(v)) return NaN
   return mode === 'utc' ? Date.parse(`${v}:00Z`) : new Date(`${v}:00`).getTime()
 }
+
+/** Hour-resolution duration for event countdowns (data are hourly samples): "≈ 3 h", "≈ 5 d 16 h", "< 1 h". */
+export function fmtHoursApprox(ms: number): string {
+  const h = Math.round(ms / 3_600_000)
+  if (h < 1) return 'less than 1 h'
+  const d = Math.floor(h / 24)
+  const r = h - d * 24
+  return d > 0 ? `≈ ${d}${NBSP}d ${r}${NBSP}h` : `≈ ${h}${NBSP}h`
+}
+
+/** "between 02:00 and 03:00 UTC on 2026-11-22" for an event inside one hourly sample interval. */
+export function fmtEventWindow(after: number, by: number, mode: TimeZoneMode = 'utc'): string {
+  const a = fmtTime(after, mode)
+  const b = fmtTime(by, mode)
+  const day = b.slice(0, 10)
+  return `between ${a.slice(11, 16)} and ${b.slice(11)} on ${day}`
+}
+
+/** Hour count with unit, e.g. "16 h" or "3 d 4 h (76 h)". */
+export function fmtHours(h: number): string {
+  if (h < 24) return `${h}${NBSP}h`
+  const d = Math.floor(h / 24)
+  return `${d}${NBSP}d ${h - d * 24}${NBSP}h`
+}
+
+export function fmtAz(az: number): string {
+  return `${(((az % 360) + 360) % 360).toFixed(1)}°`
+}

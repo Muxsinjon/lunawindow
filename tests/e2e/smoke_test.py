@@ -1,8 +1,7 @@
-"""Playwright smoke tests (webapp-testing skill pattern).
+"""Playwright smoke tests for LunaWindow (webapp-testing skill pattern).
 
 Usage:  python tests/e2e/smoke_test.py [base_url]     (default http://localhost:4173/)
-Covers: load, pick site, scrub time, compare 2 sites, landing calendar, share link restores state,
-and zero console errors/warnings. Exits non-zero on failure.
+Covers the prompt's end-to-end flow and asserts zero console errors/warnings. Exits non-zero on failure.
 """
 import re
 import sys
@@ -27,105 +26,110 @@ def check(name, fn):
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)
     ctx = browser.new_context(viewport={"width": 1440, "height": 900})
-    ctx.add_init_script("try{localStorage.setItem('llsn.onboarded','1')}catch(e){}")
     page = ctx.new_page()
     console: list[str] = []
     page.on("console", lambda m: console.append(f"{m.type}: {m.text}") if m.type in ("error", "warning") else None)
     page.on("pageerror", lambda e: console.append(f"pageerror: {e}"))
 
-    def load():
+    def welcome():
         page.goto(BASE)
         page.wait_for_load_state("networkidle")
-        expect(page.get_by_role("heading", name="Nobile Rim 2 (optimal point)")).to_be_visible()
-        expect(page.get_by_role("img", name=re.compile(r"^Sky view at"))).to_be_visible()
-        expect(page.get_by_text("Sunset in")).to_be_visible()
+        expect(page.get_by_role("heading", name=re.compile("LunaWindow — Find the Right Place"))).to_be_visible()
+        page.get_by_role("button", name=re.compile("^Explore landing sites")).click()
+        expect(page.get_by_role("heading", name="Explore and compare")).to_be_visible()
+        expect(page).to_have_url(re.compile(r"ws=compare"))
 
-    def pick_site():
-        page.get_by_label("Landing site").select_option("im-2")
-        expect(page.get_by_role("heading", name="IM-2 Athena (Intuitive Machines)")).to_be_visible()
-        expect(page).to_have_url(re.compile(r"site=im-2"))
+    def pick_sites():
+        page.get_by_label("Site A", exact=True).select_option("im-2")
+        expect(page.get_by_label("Site A status")).to_contain_text("IM-2 Athena")
+        expect(page).to_have_url(re.compile(r"a=im-2"))
+        expect(page.get_by_role("img", name=re.compile(r"^Sun elevation for both sites"))).to_be_visible()
+        expect(page.get_by_role("img", name=re.compile(r"^Earth elevation for both sites"))).to_be_visible()
 
     def scrub_time():
-        slider = page.get_by_label("Time within the window")
+        slider = page.get_by_label("Selected time")
         before = slider.get_attribute("aria-valuetext")
-        slider.focus()
-        for _ in range(12):
-            page.keyboard.press("ArrowRight")
-        after = slider.get_attribute("aria-valuetext")
-        assert before != after, f"time did not move ({before})"
+        page.get_by_role("button", name="Next hour").click()
+        expect(slider).not_to_have_attribute("aria-valuetext", before)
         page.locator("body").click(position={"x": 5, "y": 5})
-        page.keyboard.press("Shift+ArrowRight")  # global shortcut: +1 day
-        assert slider.get_attribute("aria-valuetext") != after
+        after = slider.get_attribute("aria-valuetext")
+        page.keyboard.press("Shift+ArrowRight")
+        expect(slider).not_to_have_attribute("aria-valuetext", after)
 
-    def compare_two():
-        page.get_by_role("tab", name="Compare").click()
-        expect(page.get_by_role("heading", name="Compare sites and dates")).to_be_visible()
-        rows = page.locator("article.cmp-row")
-        n = rows.count()
-        assert n >= 2, f"expected at least 2 scenarios, got {n}"
-        page.get_by_label("Site to add").select_option("im-1")
-        page.get_by_role("button", name="Add scenario").click()
-        expect(rows).to_have_count(n + 1)
-        expect(page.locator(".delta").first).to_be_visible()
+    def compare_and_models():
+        expect(page.get_by_role("heading", name="Site comparison over the mission")).to_be_visible()
+        expect(page.locator(".cmp-table tbody tr")).to_have_count(11)
+        page.get_by_label("Highlight differences").check()
+        expect(page.get_by_role("img", name=re.compile("Sun: A only"))).to_be_visible()
+        page.get_by_role("radio", name="Geometric 0°").click()
+        expect(page.get_by_text("Geometric visibility: local terrain obstruction not included").first).to_be_visible()
+        page.get_by_role("radio", name="Terrain-aware").click()
 
-    def landing_calendar():
-        page.get_by_role("tab", name="Landing calendar").click()
-        expect(page.get_by_role("heading", name="Landing calendar")).to_be_visible()
-        cells = page.locator(".cell.ok")
-        assert cells.count() > 0, "no viable days shown"
-        cells.first.click()
-        expect(page.get_by_role("tab", name="Explore a site")).to_have_attribute("aria-selected", "true")
+    def finder_and_why():
+        page.get_by_role("button", name="Open in Mission Window Finder").click()
+        expect(page.get_by_role("heading", name=re.compile("^Mission Window Finder"))).to_be_visible()
+        page.get_by_role("button", name="Find mission windows").click()
+        expect(page.locator(".finder-summary")).to_contain_text("Meets requirements", timeout=20000)
+        page.get_by_role("button", name="Why this window?").first.click()
+        why = page.locator(".why")
+        expect(why).to_contain_text("Requirements")
+        expect(why).to_contain_text("Compared with alternatives")
+        why.get_by_role("button", name="Open in Surface View").click()
+        expect(page.get_by_role("heading", name="Surface view")).to_be_visible()
+        page.get_by_role("button", name="Look at the Sun").click()
+        expect(page.locator(".sv-readout")).to_contain_text("Azimuth")
+
+    def summary():
+        page.get_by_role("button", name="Back to Explore and Compare").click()
+        page.get_by_role("button", name="Generate mission summary").click()
+        dlg = page.get_by_role("dialog")
+        expect(dlg).to_contain_text("Limitations")
+        expect(dlg.get_by_role("button", name="Download JSON")).to_be_visible()
+        dlg.get_by_role("button", name="Close summary").click()
 
     def share_link():
-        url = BASE + "#site=im-1&t=2026-12-01T00%3A00Z&at=2026-12-01T06%3A00Z&w=30&tab=site&mode=explore&tz=utc"
+        url = BASE + "#ws=surface&a=im-1&b=im-2&sv=A&t=2026-12-01T00%3A00Z&d=3&at=2026-12-01T06%3A00Z&vis=geometric&mode=explore&tz=utc"
         p2 = ctx.new_page()
         p2.goto(url)
         p2.wait_for_load_state("networkidle")
-        expect(p2.get_by_role("heading", name="IM-1 Odysseus, Malapert A")).to_be_visible()
-        expect(p2.get_by_role("radio", name="Explore")).to_have_attribute("aria-checked", "true")
-        expect(p2.get_by_label("Time within the window")).to_have_attribute("aria-valuetext", "2026-12-01 06:00 UTC")
-        expect(p2.get_by_role("complementary", name="Plain-language explanation")).to_be_visible()
+        expect(p2.get_by_role("heading", name="Surface view")).to_be_visible()
+        expect(p2.locator(".site-facts-mini").first).to_contain_text("IM-1 Odysseus")
+        expect(p2.get_by_label("Selected time")).to_have_attribute("aria-valuetext", "2026-12-01 06:00 UTC")
+        expect(p2.get_by_role("radio", name="Geometric 0°")).to_have_attribute("aria-checked", "true")
         p2.close()
 
-    def data_page():
-        page.get_by_role("tab", name="Data and methods").click()
-        expect(page.get_by_role("heading", name="About the data and methods")).to_be_visible()
-        expect(page.get_by_role("heading", name="Validated against a real mission")).to_be_visible()
+    def unsupported_date():
+        p3 = ctx.new_page()
+        p3.goto(BASE + "#ws=compare&t=2040-01-01T00%3A00Z&d=14")
+        p3.wait_for_load_state("networkidle")
+        expect(p3.get_by_text(re.compile("past the supported data"))).to_be_visible()
+        p3.close()
 
-    def interactions():
-        page.goto(BASE)
-        page.wait_for_load_state("networkidle")
-        # info tooltip opens on focus and explains the metric
-        page.get_by_role("button", name="About Sun above terrain").focus()
-        expect(page.get_by_role("tooltip")).to_contain_text("upper limb")
-        page.keyboard.press("Escape")
-        # play advances time
-        slider = page.get_by_label("Time within the window")
-        before = slider.get_attribute("aria-valuetext")
-        page.get_by_role("button", name="Play through the window").click()
-        expect(slider).not_to_have_attribute("aria-valuetext", before, timeout=5000)
-        page.get_by_role("button", name="Pause").click()
-        # clicking the polar map creates a custom site computed in the browser
-        page.locator(".mapbox canvas").wait_for(state="visible", timeout=20000)
-        box = page.locator(".mapbox").bounding_box()
-        page.mouse.click(box["x"] + box["width"] * 0.35, box["y"] + box["height"] * 0.4)
-        expect(page.get_by_role("heading", name=re.compile(r"^Custom spot"))).to_be_visible(timeout=15000)
-        expect(page).to_have_url(re.compile(r"site=custom"))
-        # theme toggle
-        page.get_by_role("button", name="Switch to light theme").click()
-        expect(page.locator("html")).to_have_attribute("data-theme", "light")
-        page.get_by_role("button", name="Switch to dark theme").click()
-        expect(page.locator("html")).to_have_attribute("data-theme", "dark")
+    def demo():
+        page.get_by_role("button", name="LunaWindow home").click()
+        page.get_by_role("button", name="Try the guided demo").click()
+        expect(page.locator(".demo")).to_contain_text("step 1 of")
+        for _ in range(4):
+            page.locator(".demo").get_by_role("button", name="Next").click()
+        expect(page.locator(".demo")).to_contain_text("An unfavourable moment")
+        page.locator(".demo").get_by_role("button", name="Exit demo").click()
+
+    def about():
+        page.get_by_role("button", name="About & methodology").click()
+        expect(page.get_by_role("heading", name=re.compile("About LunaWindow"))).to_be_visible()
+        expect(page.get_by_role("heading", name="Supported sites and dates")).to_be_visible()
 
     for name, fn in [
-        ("load", load),
-        ("pick site", pick_site),
-        ("scrub time", scrub_time),
-        ("compare 2 sites", compare_two),
-        ("landing calendar", landing_calendar),
+        ("welcome screen and entry", welcome),
+        ("pick two sites, elevation charts", pick_sites),
+        ("scrub time (buttons and keyboard)", scrub_time),
+        ("comparison, differences, model toggle", compare_and_models),
+        ("finder, why-this-window, surface view", finder_and_why),
+        ("mission summary", summary),
         ("share link restores state", share_link),
-        ("data and methods page", data_page),
-        ("tooltip, playback, map click, theme", interactions),
+        ("unsupported date explained", unsupported_date),
+        ("guided demo", demo),
+        ("about page", about),
     ]:
         check(name, fn)
 
