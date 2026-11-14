@@ -12,10 +12,22 @@ import Header, { Mark } from './components/Header'
 import { LanePatterns } from './components/Timeline'
 import { ErrorBoundary, Icon, Skeleton } from './components/ui'
 
-const Welcome = lazy(() => import('./workspaces/Welcome'))
-const ExploreCompare = lazy(() => import('./workspaces/ExploreCompare'))
-const MissionFinder = lazy(() => import('./workspaces/MissionFinder'))
-const SurfaceView = lazy(() => import('./workspaces/SurfaceView'))
+const loaders = {
+  home: () => import('./workspaces/Welcome'),
+  compare: () => import('./workspaces/ExploreCompare'),
+  finder: () => import('./workspaces/MissionFinder'),
+  surface: () => import('./workspaces/SurfaceView'),
+}
+// Start fetching the workspace the URL asks for in parallel with the data, instead of after it.
+{
+  const m = /(?:^|[#&])ws=(\w+)/.exec(window.location.hash)
+  const ws = (m?.[1] ?? (storageGet('llsn.visited') ? 'compare' : 'home')) as keyof typeof loaders
+  void loaders[ws]?.()
+}
+const Welcome = lazy(loaders.home)
+const ExploreCompare = lazy(loaders.compare)
+const MissionFinder = lazy(loaders.finder)
+const SurfaceView = lazy(loaders.surface)
 const About = lazy(() => import('./components/About'))
 const MissionSummary = lazy(() => import('./components/MissionSummary'))
 const Demo = lazy(() => import('./components/Demo'))

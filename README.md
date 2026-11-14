@@ -1,36 +1,61 @@
-# Lunar Landing Site Navigator
+# LunaWindow
 
-**When does a landing site on the Moon get sunlight and a direct line to Earth, given the real terrain?**
+**Explore. Compare. Plan. Experience.** Find the right place and time to land on the Moon.
 This project is for the NASA Space Apps Challenge 2026: [Lunar Landing Site Navigator](https://www.spaceappschallenge.org/2026/challenges/lunar-landing-site-navigator/).
 
-![The site explorer: Nobile Rim 2, where the Sun is setting behind a ridge while still 6.4° above a flat horizon](docs/screenshots/after/explorer-1440.png)
+![Explore & Compare: Nobile Rim 2 vs Connecting Ridge, with Sun and Earth elevation, visibility timeline and comparison table](docs/screenshots/after/compare-1440.png)
 
-At the lunar south pole the Sun skims the horizon, often less than 2° up. A single ridge decides whether a lander has power, and Earth's monthly wobble decides whether it can call home. Existing tools (Quickmap, Moon Trek, JPL Horizons) hold the data, but comparing sites and dates means juggling all three.
+**Where and when should a lunar mission operate to get sunlight and a direct line to Earth?** At the lunar south pole the Sun skims the horizon, so a single ridge decides whether a lander has power, and Earth's monthly wobble decides whether it can call home.
 
-This tool answers the question in seconds:
-- It plots the Sun's and Earth's paths against the **real LRO LOLA terrain horizon**.
-- It counts down to sunset and Earthset.
-- It compares sites and dates side by side.
-- When a launch slips, it shows which landing days still work.
+LunaWindow connects three things in one decision-support tool:
+- your **mission requirements**,
+- **NASA astronomical and terrain data** (JPL Horizons, LRO LOLA),
+- an **observer's view from the lunar surface**.
 
-It serves mission planners (Planner mode) and students and the public (Explore mode, which adds plain-language explanations).
+It answers three questions:
+- **Where?** Which site.
+- **When?** Which dates.
+- **Why?** Which Sun and Earth geometry explains the result.
+
+It is a preliminary tool and does not certify landing safety.
 
 **Live demo:** _add the GitHub Pages URL here after the first deploy (see "Deploy")._
 
-## Features
-- **Explore a site:**
-  - 17 cited sites: Artemis III candidates, CLPS landers, Apollo, Chandrayaan-3, SLIM, Chang'e 4.
-  - Custom coordinates, or click anywhere on the south polar map.
-  - A 360° sky panorama with the terrain silhouette, Sun and Earth paths, and a hover readout.
-  - Status chips, countdowns, a time scrubber and playback.
-- **Compare:** site/date scenarios aligned by days since landing. ▲/▼ deltas against a baseline, with the best value outlined.
-- **Landing calendar:** set the mission length, the minimum days of uninterrupted sun and the minimum Earth-link percentage. Every viable landing day lights up, including "if the launch slips a month".
-- **Data and methods:** datasets, assumptions, limitations, and validation against JPL Horizons, the LOLA team's maps and a real mission.
-- **Usability:**
-  - Every metric has an ⓘ explaining what it means, how it's computed and where the data comes from.
-  - UTC or local time; dark or light theme.
-  - Shareable URLs ("Copy link" restores the exact view).
-  - Keyboard control: <kbd>←</kbd>/<kbd>→</kbd> moves an hour, <kbd>Shift</kbd> moves a day, <kbd>Space</kbd> plays.
+## Workspaces (one shared mission state, in the URL)
+- **Welcome:** choose "Explore landing sites" or "Plan a lunar mission", or **Try the guided demo**, a 10-step walkthrough on real data.
+- **Explore & Compare:**
+  - Site A vs Site B from 17 cited sites (or your own coordinates, or a click on the south-pole map).
+  - Mission start, a 1/3/7/14/30-day duration and a shared time bar (previous/next hour, play, speed).
+  - Status per site: Sun and Earth azimuth and elevation, visible or not, next rise or set as an hour window.
+  - **Sun elevation and Earth elevation vs time** charts for both sites, with a 0° line, tooltips and a synced cursor.
+  - A **visibility timeline** (Sun, Earth, both, neither) with **Highlight differences**.
+  - A **comparison table** (11 metrics, including blackouts, interruptions and longest continuous intervals) with generated **trade-off** sentences.
+- **Mission Window Finder:**
+  - Your requirements: duration, earliest and latest start, minimum sunlight %, minimum Earth %, optional minimum joint %, maximum darkness, maximum blackout. The defaults are illustrative, not NASA standards.
+  - It searches **all sites** in about half a second and sorts every candidate into **Meets / Partially meets / Does not meet / Insufficient data**, with a transparent ranking (hard requirements first).
+  - A site × day overview grid and a sortable, filterable results list.
+  - **Why this window?** explains which requirements pass or fail using the actual numbers (e.g. *"The modeled uninterrupted loss of Earth visibility is 50 h, while the mission allows only 48 h"*), plus the best period, the critical interruptions and the alternatives. From there you can jump to Explore & Compare, Surface View or the critical moment.
+- **Surface View:**
+  - The 360° view from the site: a black sky, the real LOLA terrain silhouette, and the Sun and Earth at their true angular sizes (Earth's phase is computed).
+  - Drag to look around, Look at the Sun / Look at Earth, field of view, an optional labelled vertical exaggeration, a compass strip and a 360° overview.
+  - A plain-language reason for the current visibility state.
+- **Mission summary:** a printable HTML/PDF report or a JSON download (sites, coordinates, dates, requirements, metrics, pass/fail, interruptions, sources, limitations).
+- **About & methodology:** both visibility models, the sampling method, datasets, the supported sites and dates, validation and limitations.
+
+Header switches:
+- **Terrain-aware ↔ Geometric 0°** visibility model
+- **Planner ↔ Explain** (plain-language mode)
+- **UTC ↔ local time**
+- dark or light theme
+- **Copy link**: any view can be shared exactly.
+
+## Visibility models
+| Model | Visible when… | Label shown next to results |
+|---|---|---|
+| Terrain-aware (default) | the upper edge of the disc is above the LRO LOLA terrain horizon | "Terrain-aware visibility: upper limb above the LRO LOLA horizon (240 m terrain)" |
+| Geometric 0° | the disc centre is above the smooth geometric horizon | "Geometric visibility — local terrain obstruction not included." |
+
+Both models use **hourly samples on half-open intervals**: a sample covers the following hour, and durations are whole hours. Rise and set times are reported as one-hour windows. Dates outside 2023–2031 are never extrapolated; they're adjusted with an explanation, or marked "insufficient data".
 
 ## How it works
 
@@ -74,7 +99,7 @@ flowchart LR
 cd web
 npm install
 npm run dev        # http://localhost:5173
-npm test           # 41 unit tests (physics, URL state, Horizons cross-check)
+npm test           # 61 unit tests (physics, visibility models, finder, state, Horizons cross-check)
 npm run lint && npm run build
 ```
 
@@ -104,7 +129,7 @@ The DEMs come from `http://imbrium.mit.edu/DATA/LOLA_GDR/` (`POLAR/IMG/LDEM_75S_
 Push to `main` and `.github/workflows/pages.yml` builds, tests and publishes to GitHub Pages. In the repo settings, set Pages to use GitHub Actions. `ci.yml` runs lint, format check, unit tests, build and the Playwright smoke tests on every push.
 
 ## Tech stack
-TypeScript (strict), React 19 API (Preact runtime in production builds), Vite, Vitest, ESLint, Prettier, hand-written SVG and canvas charts, and Python (NumPy, rasterio, Playwright) for the data pipeline. Design system: [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md).
+TypeScript (strict), React 19 API (Preact runtime in production builds), hand-written SVG charts, Vite, Vitest, ESLint, Prettier, hand-written SVG and canvas charts, and Python (NumPy, rasterio, Playwright) for the data pipeline. Design system: [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md).
 
 ## References
 **NASA data**

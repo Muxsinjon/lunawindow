@@ -1,16 +1,26 @@
-# Lunar Landing Site Navigator: project rules
+# LunaWindow: project rules
 
-This is a web app for the NASA Space Apps 2026 challenge "Lunar Landing Site Navigator". It lets **mission planners, educators and the public** compare lunar landing sites and dates in seconds. For any site and time it shows where the Sun and Earth sit relative to the **real terrain horizon** (LRO LOLA). From that it derives power windows, direct-to-Earth link windows, sunset and Earthset countdowns, and viable landing dates when a schedule slips. Deadline: Sun 2026-11-15, 23:59 local-event time.
+**LunaWindow** ("Explore. Compare. Plan. Experience.") is a web app for the NASA Space Apps 2026 challenge "Lunar Landing Site Navigator". It answers WHERE, WHEN and WHY: which site, which dates, and which Sun/Earth geometry explains the result. It lets **mission planners, educators and the public** compare lunar landing sites and dates in seconds. For any site and time it shows where the Sun and Earth sit relative to the **real terrain horizon** (LRO LOLA). From that it derives power windows, direct-to-Earth link windows, sunset and Earthset countdowns, and viable landing dates when a schedule slips. Deadline: Sun 2026-11-15, 23:59 local-event time.
 
-There are two audiences in one UI. **Planner mode** shows dense numbers and comparisons. **Explore mode** adds plain-language explanations.
+It has four connected workspaces that share one mission state (`lib/state.ts`, mirrored in the URL):
+- **Explore & Compare** (Site A vs Site B)
+- **Mission Window Finder** (requirements, search, "Why this window?")
+- **Surface View** (an observer's perspective)
+- **About & methodology**
+
+There is also a welcome screen, a guided demo and a mission summary export. **Planner** mode shows the numbers; **Explain** mode adds plain-language text.
 
 ## Physics rules (non-negotiable)
-- Sun or Earth is **visible** only when it is above the **local LOLA terrain horizon** (`site.horizon`), never above 0°.
+- **Two visibility models.** Always label the active one next to results (`MODEL_LABEL` in `lib/visibility.ts`).
+  - `terrain` (default): visible while the **upper limb** is above the local LOLA terrain horizon (`site.horizon`).
+  - `geometric`: visible while the disc **centre** is above 0°, with the label "Geometric visibility — local terrain obstruction not included." Partial discs are not resolved in this model.
+- **Sampling.** Metrics use hourly samples on half-open intervals: a sample at t covers [t, t + 1 h). Durations are qualifying samples × 1 h. Rise and set times are shown as a one-hour window. **Never claim sub-hour timing.**
+- **No data, no claim.** Times outside the supported range (2023–2031) are never extrapolated. Clamp them with an explanation (`clampToCoverage`), or mark the result as "insufficient data".
 - Disc sizes:
   - The Sun's disc is 0.533° (radius `SUN_RADIUS_DEG` = 0.2666°).
   - Earth's disc is about 1.9°; its radius is computed from the live Earth–Moon distance: `asin(6371 / d)`.
   - Report partial visibility as the **% of disc area above the horizon**, using the circular-segment formula `discFractionAbove()`.
-- **Sunrise and sunset happen when the upper limb crosses the terrain horizon** (`margin + radius = 0`). Earthrise and Earthset use the same rule.
+- In the terrain model, **sunrise and sunset happen when the upper limb crosses the terrain horizon** (`margin + radius = 0`). Earthrise and Earthset use the same rule.
 - Distant terrain: horizon masks use **exact spherical 3D geometry** (`pipeline/horizon_mask.py`, `web/src/lib/terrain.ts`). To first order this equals the curvature drop `d²/2R` with R = 1737.4 km, and a unit test asserts the agreement (`curvatureDropKm`).
 - No atmospheric refraction.
 - **Longitude:**
@@ -36,6 +46,7 @@ There are two audiences in one UI. **Planner mode** shows dense numbers and comp
   - `dem_global.json/.bin` is Int16 LE, simple cylindrical, `ppd` pixels per degree, row 0 at 90° N, column 0 at 0° E.
 - `pgda_sun.bin`, `pgda_earth.bin`: Uint8 on the polar grid. Values are % of time visible; 255 means no data.
 - `validation.json`: `{ period, worstElevationErrorDeg, sites[], illumination{}, missions[] }`.
+- Mission Window Finder: `lib/finder.ts`. Candidate statuses are meets / partial (at most half of the active requirements fail) / fails / insufficient. Ranking: status, then fewer failures, then joint %, then shorter darkness, then earlier start. Explanations are generated only from computed numbers (`checkSentence`).
 - In-app time series: `Sample` in `web/src/lib/analysis.ts`. It has az/el, terrain horizon, margin and disc fraction for both the Sun and Earth, at the time `t` (ms UTC).
 
 ## Code conventions

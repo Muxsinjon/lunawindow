@@ -29,3 +29,9 @@ This log supports the Space Apps "Use of Super Intelligence (SI)" disclosure.
 | 2026-11-14 | Playwright smoke tests and screenshot capture; after screenshots | `tests/e2e/*`, `docs/screenshots/after/*` |
 | 2026-11-14 | Audit, status tracking and quality checklist | `AUDIT.md`, `docs/QUALITY_CHECKLIST.md` |
 | 2026-11-14 | Gap analysis of the LunaWindow master prompt vs the build | `docs/LUNAWINDOW_CHECKLIST.md` |
+| 2026-11-14 | Visibility models (geometric 0° and terrain-aware), hourly half-open sampled metrics, Mission Window Finder engine and tests | `web/src/lib/visibility.ts`, `web/src/lib/finder.ts`, `web/src/lib/analysis.ts`, `*.test.ts` |
+| 2026-11-14 | Shared mission state in the URL with supported-date clamping | `web/src/lib/state.ts`, `web/src/lib/store.tsx`, `web/src/App.tsx` |
+| 2026-11-14 | LunaWindow workspaces: welcome, Explore & Compare, Mission Window Finder with Why-this-window, Surface View, guided demo, mission summary export | `web/src/workspaces/*`, `web/src/components/*` |
+| 2026-11-14 | Rebrand (title, header, OG image with computed Sun/Earth), README, CLAUDE.md, checklist status | `web/index.html`, `pipeline/make_brand_assets.py`, `README.md`, `CLAUDE.md`, `docs/LUNAWINDOW_CHECKLIST.md` |
+| 2026-11-14 | Updated Playwright smoke tests and screenshots for the new workspaces | `tests/e2e/*`, `docs/screenshots/after/*` |
+| 2026-11-14 | Performance: prefetch the requested workspace chunk in parallel with data; Lighthouse re-run | `web/src/App.tsx`, `docs/lighthouse/*`, `docs/QUALITY_CHECKLIST.md` |

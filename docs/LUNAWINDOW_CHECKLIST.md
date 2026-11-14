@@ -14,6 +14,41 @@ This compares the master prompt (`Prompt.txt`, "LunaWindow") with branch `pro-up
 
 ---
 
+## Status after the LunaWindow build (2026-11-14, branch `pro-upgrade`)
+
+Team decision on C1: **keep terrain-aware as the main model and add the geometric 0° model as a labelled toggle.** Done.
+
+| # | Gap from the list below | Status |
+|---|---|---|
+| C1 | Geometric vs terrain model | ✅ A header toggle; the model label sits next to every result block; both feed every workspace |
+| C2 | No sub-hour claims | ✅ Hourly half-open sampling; rise and set shown as "between 03:00 and 04:00 UTC" |
+| C3 | Black sky | ✅ Black in both themes; Surface View, welcome hero and OG image |
+| C4 | LunaWindow brand | ✅ Title, header, tagline, welcome, README, OG image, summary |
+| C5 | Cyan accent | ✅ UI accent (tabs, focus, selection); Sun, Earth and both keep their semantic colours |
+| C6 | Tailwind and Recharts | ➖ Not used (hand-written CSS tokens and SVG charts); the prompt says "preferred", not required |
+| 1 | Quick fixes: 1 and 3 d durations, prev/next, speed, numeric azimuth, supported-range message | ✅ |
+| 2 | Site A / Site B shared state, URL, A/B map pins | ✅ |
+| 3 | Sun and Earth elevation vs time for A and B, with 0° line, tooltips and synced cursor | ✅ |
+| 4 | Compare metrics: blackout, interruptions, longest intervals, only-Sun/only-Earth/neither, Highlight differences, trade-offs | ✅ |
+| 5 | Mission Window Finder: all requirements, all sites, 4 categories, ranking, sortable list, overview grid | ✅ |
+| 6 | Why this window? plus jump to the critical interruption | ✅ |
+| 7 | Surface View workspace: drag pan, Look at Sun/Earth, compass, overview, readout, reasons | ✅ |
+| 8 | Workspace actions (Finder, Surface, Reset, Summary) | ✅ |
+| 9 | Mission Summary: print/PDF and JSON | ✅ |
+| 10 | Welcome screen plus guided demo (10 steps, live numbers; a blackout limit of 48 → 12 h changes 37 → 0 feasible starts) | ✅ |
+| 11 | Rebrand | ✅ |
+| 12 | Tests: invariants, thresholds, always/never visible, no window, insufficient data, start in a blackout, end of data | ✅ 61 unit tests, 10 end-to-end flows |
+| 13 | Deploy and check in a private window | ❌ **Needs a public GitHub repo (team decision)** |
+
+**Still open:**
+- Map zoom and pan: only three fixed extents (80°, 85°, 88° S).
+- 3D terrain and WebXR: the prompt's optional stretch goal.
+- Three coordinates flagged "Needs verification".
+- Deployment.
+- The data form differs from the prompt's per-site observation records (§7.1). We ship validated sub-solar and sub-Earth points instead and compute az/el in the browser; this is documented in the README and the About page.
+
+---
+
 ## Conflicts to decide first ⚡
 | # | Prompt says | Build does | Recommendation |
 |---|---|---|---|

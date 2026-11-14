@@ -345,8 +345,11 @@ details.more > summary {
   font-size: var(--fs-4);
   font-weight: 600;
 }
-.grid-scroll {
+.grid-scroll,
+.table-scroll {
   overflow-x: auto;
+  /* contain absolutely positioned .sr-only text so it can't widen the page */
+  position: relative;
 }
 .ov-grid {
   border-collapse: separate;
@@ -407,6 +410,10 @@ details.more > summary {
   width: 100%;
   border-collapse: collapse;
   font-size: var(--fs-1);
+}
+.results td:first-child {
+  white-space: normal;
+  min-width: 160px;
 }
 .results th,
 .results td {
