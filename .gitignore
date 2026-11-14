@@ -1,7 +1,8 @@
-node_modules/
-web/dist/
-pipeline/.venv/
-pipeline/raw/
-__pycache__/
 *.pyc
 .DS_Store
+__pycache__/
+node_modules/
+pipeline/.venv/
+pipeline/out/
+pipeline/raw/
+web/dist/

@@ -17,7 +17,7 @@ export default function Onboarding() {
     setOpen(false)
   }
   return (
-    <aside className="onboard" role="dialog" aria-modal="false" aria-labelledby="onboard-title" onKeyDown={(e) => e.key === 'Escape' && close()}>
+    <section className="onboard" aria-labelledby="onboard-title" onKeyDown={(e) => e.key === 'Escape' && close()}>
       <h2 id="onboard-title">Three things to try</h2>
       <ol>
         <li>
@@ -31,6 +31,6 @@ export default function Onboarding() {
       <button ref={btn} type="button" className="btn primary" onClick={close}>
         <Icon name="check" /> Got it
       </button>
-    </aside>
+    </section>
   )
 }

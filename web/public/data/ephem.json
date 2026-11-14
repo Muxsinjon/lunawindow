@@ -17,5 +17,7 @@
   "earthRadiusKm": 6371.0,
   "meanSunDistanceKm": 149619731.00018632,
   "source": "NASA/JPL Horizons API (DE441): target 301, center 500@399, quantities 14,15,19,20",
-  "generated": "2026-11-14T11:38:41+00:00"
+  "generated": "2026-11-14T11:38:41+00:00",
+  "shipStepH": 6,
+  "shipCount": 13148
 }

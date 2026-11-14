@@ -76,7 +76,7 @@ export default function Timeline({ samples, t0, t1, cursor, sun, earth, both, on
   const pick = (clientX: number) => {
     if (!onPick || !svgRef.current) return
     const r = svgRef.current.getBoundingClientRect()
-    const t = t0 + (((clientX - r.left) / r.width) * W - L) / pw * (t1 - t0)
+    const t = t0 + ((((clientX - r.left) / r.width) * W - L) / pw) * (t1 - t0)
     onPick(Math.max(t0, Math.min(t1, t)))
   }
 

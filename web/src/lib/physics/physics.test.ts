@@ -107,7 +107,12 @@ describe('time windows', () => {
       { t: 2 * H, v: -0.3 },
     ]
     expect(firstCrossing(s)!.time).toBeCloseTo(1.5 * H, 6)
-    expect(firstCrossing([{ t: 0, v: 1 }, { t: H, v: 2 }])).toBeNull()
+    expect(
+      firstCrossing([
+        { t: 0, v: 1 },
+        { t: H, v: 2 },
+      ]),
+    ).toBeNull()
   })
   it('% sunlit over N days', () => {
     // 3 days; sun visible during day 1 only (24 h of 72 h) → 33.3 %

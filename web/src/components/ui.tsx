@@ -75,7 +75,14 @@ export function Icon({ name, size = 18, title }: { name: IconName; size?: number
     ),
   }
   return (
-    <svg width={size} height={size} viewBox="0 0 20 20" aria-hidden={title ? undefined : true} role={title ? 'img' : undefined} className="icon">
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 20 20"
+      aria-hidden={title ? undefined : true}
+      role={title ? 'img' : undefined}
+      className="icon"
+    >
       {title && <title>{title}</title>}
       {body[name]}
     </svg>
@@ -173,9 +180,7 @@ export class ErrorBoundary extends Component<EBProps, EBState> {
         <Icon name="warn" size={22} />
         <div>
           <p className="state-title">{this.props.label} couldn't be drawn.</p>
-          <p className="muted">
-            {this.state.error.message}. Other views still work. Try again, or pick another site or date.
-          </p>
+          <p className="muted">{this.state.error.message}. Other views still work. Try again, or pick another site or date.</p>
           <button type="button" className="btn" onClick={() => this.setState({ error: null })}>
             Try again
           </button>

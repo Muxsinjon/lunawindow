@@ -22,15 +22,39 @@ type Extent = keyof typeof EXTENTS
 export default function PolarMap({ sites, selectedId, theme, onPick, onSelect }: Props) {
   const [terrain, setTerrain] = useState<Terrain | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [requested, setRequested] = useState(false)
   const [layer, setLayer] = useState<Layer>('sun')
   const [extent, setExtent] = useState<Extent>('85° S')
   const canvas = useRef<HTMLCanvasElement>(null)
 
+  const fetchTerrain = () => {
+    setRequested(true)
+    return loadTerrain().then(setTerrain, (e: Error) => setError(e.message))
+  }
+  const section = useRef<HTMLElement>(null)
+  // load the 5.7 MB of terrain only when the map is about to scroll into view
+  useEffect(() => {
+    const el = section.current
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      void fetchTerrain()
+      return
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          io.disconnect()
+          void fetchTerrain()
+        }
+      },
+      { rootMargin: '300px' },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [])
   const load = () => {
     setError(null)
-    loadTerrain().then(setTerrain, (e: Error) => setError(e.message))
+    void fetchTerrain()
   }
-  useEffect(load, [])
 
   const n = terrain?.polar.meta.n ?? 953
   const scaleM = terrain?.polar.meta.scaleM ?? 960
@@ -105,7 +129,7 @@ export default function PolarMap({ sites, selectedId, theme, onPick, onSelect }:
 
   const visible = sites.filter((s) => s.lat <= EXTENTS[extent])
   return (
-    <section className="panel polarmap" aria-labelledby="map-title">
+    <section ref={section} className="panel polarmap" aria-labelledby="map-title">
       <div className="panel-head">
         <h2 id="map-title" className="panel-title">
           South pole map <InfoTip info={INFO.map} label="the south pole map" />
@@ -118,7 +142,14 @@ export default function PolarMap({ sites, selectedId, theme, onPick, onSelect }:
       </div>
       <div className="seg full" role="radiogroup" aria-label="Map layer">
         {(['sun', 'earth', 'terrain'] as Layer[]).map((l) => (
-          <button key={l} type="button" role="radio" aria-checked={layer === l} className={layer === l ? 'on' : ''} onClick={() => setLayer(l)}>
+          <button
+            key={l}
+            type="button"
+            role="radio"
+            aria-checked={layer === l}
+            className={layer === l ? 'on' : ''}
+            onClick={() => setLayer(l)}
+          >
             {l === 'sun' ? 'Sunlight' : l === 'earth' ? 'Earth view' : 'Terrain'}
           </button>
         ))}
@@ -131,7 +162,11 @@ export default function PolarMap({ sites, selectedId, theme, onPick, onSelect }:
           </button>
         </div>
       ) : !terrain ? (
-        <Skeleton h={0} r="var(--r-md)" />
+        requested ? (
+          <Skeleton h={0} r="var(--r-md)" />
+        ) : (
+          <div className="map-idle" aria-hidden />
+        )
       ) : (
         <div className="mapbox" onClick={click} title="Click to analyse any spot">
           <canvas ref={canvas} aria-label={`South polar map to ${extent}. Click anywhere to analyse that spot.`} role="img" />
@@ -147,8 +182,9 @@ export default function PolarMap({ sites, selectedId, theme, onPick, onSelect }:
                   e.stopPropagation()
                   onSelect(s.id)
                 }}
-                aria-label={`${s.name}${s.id === selectedId ? ' (selected)' : ''}`}
-                aria-pressed={s.id === selectedId}
+                // pointer shortcut only: the "Landing site" list is the accessible equivalent (WCAG 2.5.8)
+                tabIndex={-1}
+                aria-hidden
                 title={s.name}
               />
             )

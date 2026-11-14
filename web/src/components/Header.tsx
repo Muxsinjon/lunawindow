@@ -58,7 +58,14 @@ export default function Header({ tab, setTab, mode, setMode, tz, setTz, theme, s
       <div className="top-controls">
         <div className="seg" role="radiogroup" aria-label="Audience mode">
           {(['planner', 'explore'] as Mode[]).map((m) => (
-            <button key={m} type="button" role="radio" aria-checked={mode === m} className={mode === m ? 'on' : ''} onClick={() => setMode(m)}>
+            <button
+              key={m}
+              type="button"
+              role="radio"
+              aria-checked={mode === m}
+              className={mode === m ? 'on' : ''}
+              onClick={() => setMode(m)}
+            >
               {m === 'planner' ? 'Planner' : 'Explore'}
             </button>
           ))}
@@ -91,7 +98,7 @@ export default function Header({ tab, setTab, mode, setMode, tz, setTz, theme, s
             type="button"
             role="tab"
             id={`tab-${k}`}
-            aria-controls="view"
+            aria-controls="view-panel"
             aria-selected={tab === k}
             className={tab === k ? 'on' : ''}
             onClick={() => setTab(k)}

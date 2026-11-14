@@ -53,8 +53,7 @@ export function fmtTime(t: number, mode: TimeZoneMode = 'utc', withTime = true):
   const date = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
   if (!withTime) return date
   const tz =
-    new Intl.DateTimeFormat('en-US', { timeZoneName: 'short' }).formatToParts(d).find((p) => p.type === 'timeZoneName')
-      ?.value ?? 'local'
+    new Intl.DateTimeFormat('en-US', { timeZoneName: 'short' }).formatToParts(d).find((p) => p.type === 'timeZoneName')?.value ?? 'local'
   return `${date} ${pad(d.getHours())}:${pad(d.getMinutes())} ${tz}`
 }
 

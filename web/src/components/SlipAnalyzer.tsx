@@ -176,8 +176,8 @@ export default function SlipAnalyzer({ data, site, t0, onChoose }: Props) {
         })}
       </div>
       <p className="caption">
-        Each square is one UTC day. Brighter amber means more days of uninterrupted sunlight after the best touchdown hour (touchdown needs both
-        the Sun and Earth above the terrain). Squares with a tick meet every constraint. Select a day to open it in the explorer.
+        Each square is one UTC day. Brighter amber means more days of uninterrupted sunlight after the best touchdown hour (touchdown needs
+        both the Sun and Earth above the terrain). Squares with a tick meet every constraint. Select a day to open it in the explorer.
       </p>
     </section>
   )

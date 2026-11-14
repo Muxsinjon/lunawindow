@@ -37,7 +37,7 @@ export function azEl(v: Vec3, b: Basis): { az: number; el: number } {
   const vu = dot(v, b.u)
   let az = Math.atan2(ve, vn) * R2D
   if (az < 0) az += 360
-  const el = Math.atan2(vu, Math.hypot(ve, vn)) * R2D
+  const el = Math.atan2(vu, Math.sqrt(ve * ve + vn * vn)) * R2D
   return { az, el }
 }
 

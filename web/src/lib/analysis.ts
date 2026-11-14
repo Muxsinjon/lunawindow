@@ -1,14 +1,7 @@
 // Sun / Earth visibility analysis for a site, terrain-aware. Pure functions (no React).
 import type { Ephemeris, Site } from './data'
 import { type Basis, type Vec3, azEl, enuBasis, horizonAt, unitVec } from './geometry'
-import {
-  R_EARTH_KM,
-  R_MOON_KM,
-  SUN_RADIUS_DEG,
-  angularRadiusDeg,
-  discFractionAbove,
-  upperLimbMargin,
-} from './physics/disc'
+import { R_EARTH_KM, R_MOON_KM, SUN_RADIUS_DEG, angularRadiusDeg, discFractionAbove, upperLimbMargin } from './physics/disc'
 import { type Interval, firstCrossing, intersect, longestGap, percentCovered, positiveIntervals } from './physics/windows'
 
 export { SUN_RADIUS_DEG }
@@ -79,7 +72,7 @@ export function vectorsAt(eph: Ephemeris, t: number): { earth: Vec3; sun: Vec3 }
   const [eb, sb] = rowVec(eph, i + 1)
   const lerp = (a: Vec3, b: Vec3): Vec3 => [a[0] + (b[0] - a[0]) * w, a[1] + (b[1] - a[1]) * w, a[2] + (b[2] - a[2]) * w]
   const s = lerp(sa, sb)
-  const n = Math.hypot(s[0], s[1], s[2])
+  const n = Math.sqrt(s[0] * s[0] + s[1] * s[1] + s[2] * s[2])
   return { earth: lerp(ea, eb), sun: [s[0] / n, s[1] / n, s[2] / n] }
 }
 
@@ -88,7 +81,7 @@ export function evalVectors(ctx: SiteCtx, t: number, earth: Vec3, sun: Vec3): Sa
   const s = azEl(sun, ctx.basis)
   const ev: Vec3 = [earth[0] - ctx.pos[0], earth[1] - ctx.pos[1], earth[2] - ctx.pos[2]]
   const e = azEl(ev, ctx.basis)
-  const dist = Math.hypot(ev[0], ev[1], ev[2])
+  const dist = Math.sqrt(ev[0] * ev[0] + ev[1] * ev[1] + ev[2] * ev[2])
   const eR = angularRadiusDeg(R_EARTH_KM, dist)
   const sh = horizonAt(ctx.site.horizon, ctx.azStep, s.az)
   const eh = horizonAt(ctx.site.horizon, ctx.azStep, e.az)
@@ -150,8 +143,7 @@ export function nextEvent(ctx: SiteCtx, eph: Ephemeris, t: number, body: Body, m
   const f = upper(body)
   const now = sampleAt(ctx, eph, t)
   const up = f(now) > 0
-  const kind: NextEvent['kind'] =
-    body === 'sun' ? (up ? 'Sunset' : 'Sunrise') : up ? 'Earthset' : 'Earthrise'
+  const kind: NextEvent['kind'] = body === 'sun' ? (up ? 'Sunset' : 'Sunrise') : up ? 'Earthset' : 'Earthrise'
   const end = Math.min(eph.endMs, t + maxDays * DAY)
   const m = eph.meta
   let prev = { t, v: f(now) }

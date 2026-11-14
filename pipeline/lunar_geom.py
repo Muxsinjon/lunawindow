@@ -43,7 +43,7 @@ def az_el(vec: np.ndarray, lon_deg: float, lat_deg: float):
 class Ephemeris:
     def __init__(self, data_dir: Path = DATA):
         self.meta = json.loads((data_dir / "ephem.json").read_text())
-        raw = np.frombuffer((data_dir / "ephem.bin").read_bytes(), dtype="<f4")
+        raw = np.frombuffer((Path(__file__).resolve().parent / "out" / "ephem_hourly.bin").read_bytes(), dtype="<f4")
         self.rows = raw.reshape(-1, 6).astype(np.float64)
         self.start_ms = self.meta["startMs"]
         self.step_ms = self.meta["stepMs"]

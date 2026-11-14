@@ -27,6 +27,7 @@ API = "https://ssd.jpl.nasa.gov/api/horizons.api"
 OUT = Path(__file__).resolve().parent.parent / "web" / "public" / "data"
 START_YEAR, END_YEAR = 2023, 2032  # [start, end) -> hourly samples
 STEP_H = 1
+SHIP_STEP_H = 6
 
 
 def fetch_chunk(start: str, stop: str) -> list[tuple[datetime, float, float, float, float, float, float]]:
@@ -93,13 +94,18 @@ def main() -> None:
     earth = unit(a[:, 0], a[:, 1]) * a[:, 2:3]  # km, MOON_ME
     sun = unit(a[:, 3], a[:, 4])  # unit vector, MOON_ME
     data = np.concatenate([earth, sun], axis=1).astype("<f4")
-    (OUT / "ephem.bin").write_bytes(data.tobytes())
+    (Path(__file__).resolve().parent / "out" / "ephem_hourly.bin").write_bytes(data.tobytes())  # full resolution, used by the Python pipeline
+    # The web app downloads every SHIP_STEP_H-th row (6x smaller) and rebuilds the hourly series
+    # by interpolation (upsampleEphemeris in web/src/lib/ephemeris.ts; error < 0.001 deg).
+    (OUT / "ephem.bin").write_bytes(data[::SHIP_STEP_H].tobytes())
 
     meta = {
         "startUtc": t[0].isoformat().replace("+00:00", "Z"),
         "startMs": int(t[0].timestamp() * 1000),
         "stepMs": STEP_H * 3600 * 1000,
         "count": len(rows),
+        "shipStepH": SHIP_STEP_H,
+        "shipCount": len(data[::SHIP_STEP_H]),
         "columns": ["earth_x_km", "earth_y_km", "earth_z_km", "sun_x", "sun_y", "sun_z"],
         "frame": "MOON_ME (IAU mean-Earth/polar-axis, east-longitude positive)",
         "moonRadiusKm": 1737.4,

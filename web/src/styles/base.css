@@ -14,7 +14,9 @@ body {
   font-family: var(--font-ui);
   font-size: var(--fs-2);
   line-height: 1.45;
-  transition: background-color var(--t-base) var(--ease), color var(--t-base) var(--ease);
+  transition:
+    background-color var(--t-base) var(--ease),
+    color var(--t-base) var(--ease);
 }
 h1,
 h2,
@@ -101,7 +103,9 @@ kbd {
   background: transparent;
   cursor: pointer;
   white-space: nowrap;
-  transition: background-color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+  transition:
+    background-color var(--t-fast) var(--ease),
+    border-color var(--t-fast) var(--ease);
 }
 .btn:hover {
   background: var(--c-raised);
@@ -194,7 +198,9 @@ input[type='range'] {
   color: var(--c-text-muted);
   cursor: pointer;
   white-space: nowrap;
-  transition: background-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease);
+  transition:
+    background-color var(--t-fast) var(--ease),
+    color var(--t-fast) var(--ease);
 }
 .seg button:hover {
   color: var(--c-text);
@@ -801,32 +807,47 @@ figcaption {
   height: 100%;
   display: block;
 }
+.map-idle {
+  aspect-ratio: 1;
+  border-radius: var(--r-md);
+  background: var(--c-raised);
+}
 .polarmap .skel {
   aspect-ratio: 1;
 }
 .pin {
   position: absolute;
-  width: 14px;
-  height: 14px;
+  width: 24px;
+  height: 24px;
   padding: 0;
+  border: 0;
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  background: var(--c-text);
-  border: 2px solid var(--c-bg);
+  background: transparent;
   cursor: pointer;
+  display: grid;
+  place-items: center;
 }
-.pin::after {
+.pin::before {
   content: '';
-  position: absolute;
-  inset: -8px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--c-text);
+  box-shadow: 0 0 0 2px var(--c-bg);
 }
 .pin.sel {
-  width: 18px;
-  height: 18px;
-  background: var(--c-both);
-  box-shadow: 0 0 0 3px var(--c-bg), 0 0 0 5px var(--c-both);
+  z-index: 2;
 }
-.pin.custom {
+.pin.sel::before {
+  width: 16px;
+  height: 16px;
+  background: var(--c-both);
+  box-shadow:
+    0 0 0 3px var(--c-bg),
+    0 0 0 5px var(--c-both);
+}
+.pin.custom::before {
   background: var(--c-earth);
   border-radius: 3px;
 }

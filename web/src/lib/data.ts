@@ -1,10 +1,15 @@
+import { upsampleEphemeris } from './ephemeris'
 // Loads the precomputed NASA-derived data shipped in public/data (see /pipeline).
 
 export interface EphemMeta {
   startUtc: string
   startMs: number
   stepMs: number
+  /** hourly rows after upsampling in the browser */
   count: number
+  /** the shipped file keeps every shipStepH-th hour */
+  shipStepH?: number
+  shipCount?: number
   moonRadiusKm: number
   sunRadiusKm: number
   earthRadiusKm: number
@@ -86,7 +91,7 @@ async function get(f: string): Promise<Response> {
   if (!r.ok) throw new Error(`Could not load ${f} (HTTP ${r.status})`)
   return r
 }
-const json = async <T,>(f: string): Promise<T> => (await get(f)).json() as Promise<T>
+const json = async <T>(f: string): Promise<T> => (await get(f)).json() as Promise<T>
 const bin = async (f: string): Promise<ArrayBuffer> => (await get(f)).arrayBuffer()
 
 export async function loadCore(): Promise<AppData> {
@@ -96,9 +101,7 @@ export async function loadCore(): Promise<AppData> {
     json<SitesFile>('sites.json'),
     json<Validation>('validation.json'),
   ])
-  const rows = new Float32Array(ephBuf)
-  if (rows.length !== meta.count * 6) throw new Error('Ephemeris file is incomplete')
-  return { eph: { meta, rows, endMs: meta.startMs + (meta.count - 1) * meta.stepMs }, sites, validation }
+  return { eph: buildEphemeris(meta, new Float32Array(ephBuf)), sites, validation }
 }
 
 let terrainPromise: Promise<Terrain> | null = null
@@ -124,4 +127,14 @@ export function loadTerrain(): Promise<Terrain> {
     throw err
   })
   return terrainPromise
+}
+
+/** Expand the shipped ephemeris to hourly rows and fix up the metadata. */
+export function buildEphemeris(shipped: EphemMeta, raw: Float32Array): Ephemeris {
+  const step = shipped.shipStepH ?? 1
+  const expected = (shipped.shipCount ?? shipped.count) * 6
+  if (raw.length !== expected) throw new Error('Ephemeris file is incomplete')
+  const rows = upsampleEphemeris(raw, step)
+  const meta = { ...shipped, count: rows.length / 6 }
+  return { meta, rows, endMs: meta.startMs + (meta.count - 1) * meta.stepMs }
 }

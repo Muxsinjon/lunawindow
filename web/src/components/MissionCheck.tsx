@@ -12,14 +12,12 @@ export default function MissionCheck({ v, compact }: { v: Validation; compact?: 
         <Icon name="check" size={18} /> Validated against a real mission
       </h3>
       <p>
-        <b>Chandrayaan-3</b> (ISRO) landed on 23 Aug 2023. Our terrain-aware model, without tuning, predicts local sunset at its
-        landing site on <b className="num">{sunset ? sunset.utc.replace('T', ' ').replace('Z', ' UTC') : '—'}</b>. ISRO put the
-        Vikram lander to sleep early that day, ahead of the lunar night.
+        <b>Chandrayaan-3</b> (ISRO) landed on 23 Aug 2023. Our terrain-aware model, without tuning, predicts local sunset at its landing
+        site on <b className="num">{sunset ? sunset.utc.replace('T', ' ').replace('Z', ' UTC') : '—'}</b>. ISRO put the Vikram lander to
+        sleep early that day, ahead of the lunar night.
       </p>
       {!compact && <p className="muted">{m.record}</p>}
-      <p className="cite">
-        Sources: ISRO mission updates, September 2023; The National, 5 Sep 2023. Model: JPL Horizons and LRO LOLA.
-      </p>
+      <p className="cite">Sources: ISRO mission updates, September 2023; The National, 5 Sep 2023. Model: JPL Horizons and LRO LOLA.</p>
     </section>
   )
 }

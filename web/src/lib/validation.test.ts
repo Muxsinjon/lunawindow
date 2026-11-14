@@ -3,7 +3,8 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import type { Ephemeris, EphemMeta, Site } from './data'
+import { buildEphemeris } from './data'
+import type { EphemMeta, Site } from './data'
 import { makeCtx, nextEvent, sampleAt, summarizeSamples, series } from './analysis'
 import ref from './__fixtures__/horizons_reference.json'
 
@@ -11,7 +12,7 @@ const dataDir = resolve(__dirname, '../../public/data')
 const meta = JSON.parse(readFileSync(resolve(dataDir, 'ephem.json'), 'utf8')) as EphemMeta
 const buf = readFileSync(resolve(dataDir, 'ephem.bin'))
 const rows = new Float32Array(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength))
-const eph: Ephemeris = { meta, rows, endMs: meta.startMs + (meta.count - 1) * meta.stepMs }
+const eph = buildEphemeris(meta, rows)
 const sites = JSON.parse(readFileSync(resolve(dataDir, 'sites.json'), 'utf8')) as { azStepDeg: number; sites: Site[] }
 
 const flatSite = (lat: number, lon: number): Site => ({

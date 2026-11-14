@@ -19,7 +19,7 @@
       property="og:description"
       content="Terrain-aware Sun and Earth visibility for lunar landing sites. Built for the NASA Space Apps Challenge 2026 with JPL Horizons and LRO LOLA data."
     />
-    <meta property="og:image" content="./og-image.png" />
+    <meta property="og:image" content="%VITE_SITE_URL%og-image.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="A lunar horizon silhouette with the Sun about to set behind a ridge and Earth above the horizon." />
@@ -28,8 +28,15 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600&family=Barlow:wght@400;500;600&display=swap"
+    />
+    <link
       href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600&family=Barlow:wght@400;500;600&display=swap"
       rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
     />
     <link rel="preload" href="./data/ephem.bin" as="fetch" type="application/octet-stream" crossorigin />
     <script>

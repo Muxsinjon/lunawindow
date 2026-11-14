@@ -23,7 +23,7 @@ SUN_R_DEG = 0.2666
 
 
 def main():
-    eph = np.frombuffer((DATA / "ephem.bin").read_bytes(), dtype="<f4").reshape(-1, 6).astype(np.float64)
+    eph = np.frombuffer((Path(__file__).resolve().parent / "out" / "ephem_hourly.bin").read_bytes(), dtype="<f4").reshape(-1, 6).astype(np.float64)
     earth, sun = eph[:, :3], eph[:, 3:]
     sites = json.loads((DATA / "sites.json").read_text())
     step = sites["azStepDeg"]

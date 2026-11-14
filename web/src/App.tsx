@@ -42,11 +42,14 @@ export default function App() {
     storageSet('llsn.theme', t)
     setThemeState(t)
   }
-  const load = useCallback(() => {
+  const fetchCore = useCallback(() => loadCore().then(setData, (e: Error) => setError(e.message)), [])
+  useEffect(() => {
+    void fetchCore()
+  }, [fetchCore])
+  const load = () => {
     setError(null)
-    loadCore().then(setData, (e: Error) => setError(e.message))
-  }, [])
-  useEffect(load, [load])
+    void fetchCore()
+  }
 
   if (error)
     return (
@@ -147,11 +150,18 @@ function Navigator({ data, theme, setTheme }: { data: AppData; theme: Theme; set
     }
   }, [])
   useEffect(() => {
-    if (init.site?.startsWith('custom:')) {
-      const [la, lo] = init.site.slice(7).split(',').map(Number)
-      if (Number.isFinite(la) && Number.isFinite(lo)) void addCustom(la, lo)
-    }
-  }, [init, addCustom])
+    if (!init.site?.startsWith('custom:')) return
+    const [la, lo] = init.site.slice(7).split(',').map(Number)
+    if (!Number.isFinite(la) || !Number.isFinite(lo)) return
+    loadTerrain().then(
+      (terrain) => {
+        const s = makeCustomSite(terrain, la, lo)
+        setCustom((c) => [...c.filter((x) => x.id !== s.id), s])
+        setSiteId(s.id)
+      },
+      () => setSiteId(DEFAULT.site),
+    )
+  }, [init])
 
   const site = sites.find((s) => s.id === siteId) ?? (siteId.startsWith('custom:') ? null : sites[0])
   const t1 = Math.min(data.eph.endMs, t0 + windowDays * DAY)
@@ -235,90 +245,98 @@ function Navigator({ data, theme, setTheme }: { data: AppData; theme: Theme; set
         </a>
         <LanePatterns />
         <Header tab={tab} setTab={setTab} mode={mode} setMode={setMode} tz={tz} setTz={setTz} theme={theme} setTheme={setTheme} />
-        <main id="view" role="tabpanel" aria-labelledby={`tab-${tab}`} tabIndex={-1}>
-          {tab === 'site' &&
-            (site ? (
-              <ErrorBoundary label="The site explorer">
-                <Explorer
-                  data={data}
-                  site={site}
-                  sites={sites}
-                  t0={t0}
-                  t1={t1}
-                  t={tc}
-                  setT={(x) => {
-                    setPlaying(false)
-                    setT(x)
-                  }}
-                  setStart={setStart}
-                  windowDays={windowDays}
-                  setWindowDays={setWindowDays}
-                  playing={playing}
-                  togglePlay={() => {
-                    if (!playing && tc >= t1) setT(t0)
-                    setPlaying(!playing)
-                  }}
-                  setSiteId={setSiteId}
-                  addCustom={addCustom}
-                  customBusy={customBusy}
-                  theme={theme}
-                  onCompare={() => {
-                    setScenarios([...scenarios, { key: `${site.id}-${t0}-${Date.now()}`, siteId: site.id, t0 }])
-                    setTab('compare')
-                  }}
-                />
-              </ErrorBoundary>
-            ) : (
-              <div className="stage pad">
-                <Skeleton h={420} r="var(--r-lg)" />
-              </div>
-            ))}
-          <Suspense fallback={<div className="pad"><Skeleton h={360} /></div>}>
-            {tab === 'compare' && (
-              <ErrorBoundary label="The comparison">
-                <div className="pad">
-                  <Compare
-                    data={data}
-                    sites={sites}
-                    scenarios={scenarios}
-                    setScenarios={setScenarios}
-                    windowDays={windowDays}
-                    onOpen={(s) => {
-                      setSiteId(s.siteId)
-                      setStart(s.t0)
-                      setTab('site')
-                    }}
-                  />
-                </div>
-              </ErrorBoundary>
-            )}
-            {tab === 'slip' && site && (
-              <ErrorBoundary label="The landing calendar">
-                <div className="pad">
-                  <div className="slip-pick">
-                    <SitePicker sites={sites} selectedId={site.id} onSelect={setSiteId} />
-                  </div>
-                  <SlipAnalyzer
+        <main id="view" tabIndex={-1}>
+          <div role="tabpanel" id="view-panel" aria-labelledby={`tab-${tab}`}>
+            {tab === 'site' &&
+              (site ? (
+                <ErrorBoundary label="The site explorer">
+                  <Explorer
                     data={data}
                     site={site}
+                    sites={sites}
                     t0={t0}
-                    onChoose={(ms) => {
-                      setT0(clampTime(data.eph, ms - DAY))
-                      setT(clampTime(data.eph, ms))
-                      setTab('site')
+                    t1={t1}
+                    t={tc}
+                    setT={(x) => {
+                      setPlaying(false)
+                      setT(x)
+                    }}
+                    setStart={setStart}
+                    windowDays={windowDays}
+                    setWindowDays={setWindowDays}
+                    playing={playing}
+                    togglePlay={() => {
+                      if (!playing && tc >= t1) setT(t0)
+                      setPlaying(!playing)
+                    }}
+                    setSiteId={setSiteId}
+                    addCustom={addCustom}
+                    customBusy={customBusy}
+                    theme={theme}
+                    onCompare={() => {
+                      setScenarios([...scenarios, { key: `${site.id}-${t0}-${Date.now()}`, siteId: site.id, t0 }])
+                      setTab('compare')
                     }}
                   />
+                </ErrorBoundary>
+              ) : (
+                <div className="stage pad">
+                  <Skeleton h={420} r="var(--r-lg)" />
                 </div>
-              </ErrorBoundary>
-            )}
-            {tab === 'about' && (
-              <ErrorBoundary label="The data and methods page">
+              ))}
+            <Suspense
+              fallback={
                 <div className="pad">
-                  <About data={data} />
+                  <Skeleton h={360} />
                 </div>
-              </ErrorBoundary>
-            )}
-          </Suspense>
+              }
+            >
+              {tab === 'compare' && (
+                <ErrorBoundary label="The comparison">
+                  <div className="pad">
+                    <Compare
+                      data={data}
+                      sites={sites}
+                      scenarios={scenarios}
+                      setScenarios={setScenarios}
+                      windowDays={windowDays}
+                      onOpen={(s) => {
+                        setSiteId(s.siteId)
+                        setStart(s.t0)
+                        setTab('site')
+                      }}
+                    />
+                  </div>
+                </ErrorBoundary>
+              )}
+              {tab === 'slip' && site && (
+                <ErrorBoundary label="The landing calendar">
+                  <div className="pad">
+                    <div className="slip-pick">
+                      <SitePicker sites={sites} selectedId={site.id} onSelect={setSiteId} />
+                    </div>
+                    <SlipAnalyzer
+                      data={data}
+                      site={site}
+                      t0={t0}
+                      onChoose={(ms) => {
+                        setT0(clampTime(data.eph, ms - DAY))
+                        setT(clampTime(data.eph, ms))
+                        setTab('site')
+                      }}
+                    />
+                  </div>
+                </ErrorBoundary>
+              )}
+              {tab === 'about' && (
+                <ErrorBoundary label="The data and methods page">
+                  <div className="pad">
+                    <About data={data} />
+                  </div>
+                </ErrorBoundary>
+              )}
+            </Suspense>
+          </div>
         </main>
         <footer className="foot">
           <p>
@@ -364,7 +382,13 @@ function Explorer(p: ExplorerProps) {
         <div className="explorer">
           <aside className="rail" aria-label="Site and time">
             <section className="panel" aria-label="Choose a site">
-              <SitePicker sites={p.sites} selectedId={site.id} onSelect={p.setSiteId} onCustom={(la, lo) => void p.addCustom(la, lo)} customBusy={p.customBusy} />
+              <SitePicker
+                sites={p.sites}
+                selectedId={site.id}
+                onSelect={p.setSiteId}
+                onCustom={(la, lo) => void p.addCustom(la, lo)}
+                customBusy={p.customBusy}
+              />
             </section>
             <section className="panel" aria-label="Choose dates">
               <label className="field">
@@ -430,7 +454,12 @@ function Explorer(p: ExplorerProps) {
             <StatusStrip now={now} sunEvent={sunEvent} earthEvent={earthEvent} />
             <SkyChart horizon={site.horizon} azStep={data.sites.azStepDeg} samples={samples} now={now} />
             <div className="scrub-row">
-              <button type="button" className="btn primary" onClick={p.togglePlay} aria-label={p.playing ? 'Pause' : 'Play through the window'}>
+              <button
+                type="button"
+                className="btn primary"
+                onClick={p.togglePlay}
+                aria-label={p.playing ? 'Pause' : 'Play through the window'}
+              >
                 <Icon name={p.playing ? 'pause' : 'play'} />
                 {p.playing ? 'Pause' : 'Play'}
               </button>
@@ -449,7 +478,9 @@ function Explorer(p: ExplorerProps) {
                 {fmtTime(t, tz)}
               </output>
             </div>
-            {mode === 'explore' && <Explain siteName={site.name} lat={site.lat} now={now} sunEvent={sunEvent} sum={sum} windowDays={p.windowDays} />}
+            {mode === 'explore' && (
+              <Explain siteName={site.name} lat={site.lat} now={now} sunEvent={sunEvent} sum={sum} windowDays={p.windowDays} />
+            )}
             <figure className="chart-frame">
               <div className="chart-head">
                 <h3 className="chart-title">
@@ -461,7 +492,17 @@ function Explorer(p: ExplorerProps) {
                   <span className="lg lg-both">Both</span>
                 </div>
               </div>
-              <Timeline samples={samples} t0={t0} t1={t1} cursor={t} sun={sum.sun} earth={sum.earth} both={sum.both} onPick={p.setT} label="Window" />
+              <Timeline
+                samples={samples}
+                t0={t0}
+                t1={t1}
+                cursor={t}
+                sun={sum.sun}
+                earth={sum.earth}
+                both={sum.both}
+                onPick={p.setT}
+                label="Window"
+              />
               <figcaption>
                 The lines show how high the Sun and Earth stand above the terrain (the dashed line). Select a point to move the time cursor.
               </figcaption>

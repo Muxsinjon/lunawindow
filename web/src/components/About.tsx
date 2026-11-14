@@ -23,18 +23,18 @@ export default function About({ data }: { data: AppData }) {
       <h3>How it works</h3>
       <ol>
         <li>
-          <b>Where are the Sun and Earth?</b> We asked NASA/JPL Horizons (DE441) for the sub-solar and sub-Earth points on the Moon every hour from 2023 to 2031, in
-          the Moon’s body-fixed frame. That is a 1.9 MB file from which the browser computes the Sun’s and Earth’s azimuth and elevation for any
-          lunar coordinate, including libration (Earth’s monthly wobble in the lunar sky).
+          <b>Where are the Sun and Earth?</b> We asked NASA/JPL Horizons (DE441) for the sub-solar and sub-Earth points on the Moon every
+          hour from 2023 to 2031, in the Moon’s body-fixed frame. That is a 1.9 MB file from which the browser computes the Sun’s and
+          Earth’s azimuth and elevation for any lunar coordinate, including libration (Earth’s monthly wobble in the lunar sky).
         </li>
         <li>
-          <b>Where is the real horizon?</b> At the south pole the Sun skims the horizon, often less than 2° up, so a smooth-sphere horizon is
-          misleading. We cast rays every 0.5° of azimuth out to {data.sites.maxDistanceKm} km over LRO LOLA laser-altimetry terrain, on a curved Moon,
-          for an observer {data.sites.observerHeightM} m above the ground.
+          <b>Where is the real horizon?</b> At the south pole the Sun skims the horizon, often less than 2° up, so a smooth-sphere horizon
+          is misleading. We cast rays every 0.5° of azimuth out to {data.sites.maxDistanceKm} km over LRO LOLA laser-altimetry terrain, on a
+          curved Moon, for an observer {data.sites.observerHeightM} m above the ground.
         </li>
         <li>
-          <b>What does it mean for a mission?</b> Sunrise and sunset happen when the upper edge of the disc crosses that terrain line. From the
-          windows we derive countdowns, percentages, the longest dark period, solar power and the landing calendar.
+          <b>What does it mean for a mission?</b> Sunrise and sunset happen when the upper edge of the disc crosses that terrain line. From
+          the windows we derive countdowns, percentages, the longest dark period, solar power and the landing calendar.
         </li>
       </ol>
 
@@ -120,7 +120,9 @@ export default function About({ data }: { data: AppData }) {
       <ul>
         <li>The Moon is a sphere of radius 1737.4 km, carrying LOLA terrain. There is no atmosphere, so no refraction.</li>
         <li>The observer is 2 m above the ground (a lander’s solar panels and antenna).</li>
-        <li>The Sun or Earth counts as visible while any part of its disc clears the terrain. Visible % is the disc area above the horizon.</li>
+        <li>
+          The Sun or Earth counts as visible while any part of its disc clears the terrain. Visible % is the disc area above the horizon.
+        </li>
         <li>Power assumes a vertical, sun-tracking panel with 30 % efficient cells. There is no thermal, dust or degradation model.</li>
         <li>An “Earth link” means Earth is above the terrain. A ground station on Earth must also see the Moon at the same time.</li>
       </ul>

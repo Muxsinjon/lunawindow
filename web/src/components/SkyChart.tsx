@@ -72,8 +72,26 @@ export default function SkyChart({ horizon, azStep, samples, now }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [horizon, azStep, lo, hi, W, H])
 
-  const sunSegs = useMemo(() => tracks(samples, (s) => s.sunAz, (s) => s.sunEl, (s) => s.sunUpper > 0), [samples])
-  const earthSegs = useMemo(() => tracks(samples, (s) => s.earthAz, (s) => s.earthEl, (s) => s.earthUpper > 0), [samples])
+  const sunSegs = useMemo(
+    () =>
+      tracks(
+        samples,
+        (s) => s.sunAz,
+        (s) => s.sunEl,
+        (s) => s.sunUpper > 0,
+      ),
+    [samples],
+  )
+  const earthSegs = useMemo(
+    () =>
+      tracks(
+        samples,
+        (s) => s.earthAz,
+        (s) => s.earthEl,
+        (s) => s.earthUpper > 0,
+      ),
+    [samples],
+  )
 
   const span = hi - lo
   const step = span > 60 ? 15 : span > 30 ? 10 : span > 14 ? 5 : span > 7 ? 2 : 1
@@ -91,7 +109,7 @@ export default function SkyChart({ horizon, azStep, samples, now }: Props) {
 
   const onMove = (e: React.PointerEvent<SVGSVGElement>) => {
     const r = e.currentTarget.getBoundingClientRect()
-    const az = (((e.clientX - r.left) / r.width) * W - M.l) / pw * 360
+    const az = ((((e.clientX - r.left) / r.width) * W - M.l) / pw) * 360
     setHoverAz(az >= 0 && az <= 360 ? az : null)
   }
 
@@ -200,11 +218,7 @@ export default function SkyChart({ horizon, azStep, samples, now }: Props) {
           )}
         </svg>
         {hoverAz !== null && (
-          <div
-            className="readout num"
-            style={{ left: Math.min(Math.max(x(hoverAz) + 10, 8), W - 190), top: M.t + 6 }}
-            aria-hidden
-          >
+          <div className="readout num" style={{ left: Math.min(Math.max(x(hoverAz) + 10, 8), W - 190), top: M.t + 6 }} aria-hidden>
             <div>
               Azimuth {hoverAz.toFixed(1)}° {compass(hoverAz)}
             </div>

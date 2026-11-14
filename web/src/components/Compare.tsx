@@ -49,8 +49,24 @@ const COLS: Col[] = [
   { key: 'sun', label: 'Sunlit', info: 'sun', value: (r) => r.sum.sunPct, fmt: fmtPct, higherIsBetter: true, deltaFmt: pts },
   { key: 'earth', label: 'Earth in view', info: 'earth', value: (r) => r.sum.earthPct, fmt: fmtPct, higherIsBetter: true, deltaFmt: pts },
   { key: 'both', label: 'Operations window', info: 'ops', value: (r) => r.sum.bothPct, fmt: fmtPct, higherIsBetter: true, deltaFmt: pts },
-  { key: 'dark', label: 'Longest dark', info: 'dark', value: (r) => r.sum.longestDarkMs, fmt: fmtDuration, higherIsBetter: false, deltaFmt: (d) => fmtDuration(Math.abs(d)) },
-  { key: 'sunset', label: 'Sun lasts after start', info: 'sun', value: (r) => r.firstSunsetMs, fmt: fmtDuration, higherIsBetter: true, deltaFmt: (d) => fmtDuration(Math.abs(d)) },
+  {
+    key: 'dark',
+    label: 'Longest dark',
+    info: 'dark',
+    value: (r) => r.sum.longestDarkMs,
+    fmt: fmtDuration,
+    higherIsBetter: false,
+    deltaFmt: (d) => fmtDuration(Math.abs(d)),
+  },
+  {
+    key: 'sunset',
+    label: 'Sun lasts after start',
+    info: 'sun',
+    value: (r) => r.firstSunsetMs,
+    fmt: fmtDuration,
+    higherIsBetter: true,
+    deltaFmt: (d) => fmtDuration(Math.abs(d)),
+  },
 ]
 
 export default function Compare({ data, sites, scenarios, setScenarios, windowDays, onOpen }: Props) {
@@ -98,14 +114,14 @@ export default function Compare({ data, sites, scenarios, setScenarios, windowDa
         <div>
           <h2 id="cmp-title">Compare sites and dates</h2>
           <p className="lede">
-            Each row starts on its own date, and the bars line up by days since landing. The first row is the baseline: ▲ and ▼ show
-            better or worse than it.
+            Each row starts on its own date, and the bars line up by days since landing. The first row is the baseline: ▲ and ▼ show better
+            or worse than it.
           </p>
         </div>
         <form className="addscn" onSubmit={add}>
           <label className="field">
             <span className="field-label">Site</span>
-            <select value={siteId} onChange={(e) => setSiteId(e.target.value)}>
+            <select value={siteId} onChange={(e) => setSiteId(e.target.value)} aria-label="Site to add">
               {sites.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
@@ -131,7 +147,11 @@ export default function Compare({ data, sites, scenarios, setScenarios, windowDa
       ) : (
         <div className="cmp-list">
           {rows.map((r, i) => (
-            <article className={`cmp-row ${i === 0 ? 'baseline' : ''}`} key={r.sc.key} aria-label={`${r.site.name}, ${fmtTime(r.sc.t0, tz)}`}>
+            <article
+              className={`cmp-row ${i === 0 ? 'baseline' : ''}`}
+              key={r.sc.key}
+              aria-label={`${r.site.name}, ${fmtTime(r.sc.t0, tz)}`}
+            >
               <div className="cmp-name">
                 <button type="button" className="link" onClick={() => onOpen(r.sc)}>
                   {r.site.name}
@@ -146,7 +166,7 @@ export default function Compare({ data, sites, scenarios, setScenarios, windowDa
                   const b = best(c)
                   const base = c.value(rows[0])
                   const d = i > 0 && v !== null && base !== null ? v - base : null
-                  const better = d !== null && d !== 0 ? (d > 0) === c.higherIsBetter : null
+                  const better = d !== null && d !== 0 ? d > 0 === c.higherIsBetter : null
                   return (
                     <div key={c.key} className={v !== null && b !== null && v === b ? 'best' : ''}>
                       <dt>
@@ -166,7 +186,17 @@ export default function Compare({ data, sites, scenarios, setScenarios, windowDa
                 })}
               </dl>
               <div className="cmp-lanes">
-                <Timeline compact relative samples={r.samples} t0={r.sc.t0} t1={r.t1} sun={r.sum.sun} earth={r.sum.earth} both={r.sum.both} label={r.site.name} />
+                <Timeline
+                  compact
+                  relative
+                  samples={r.samples}
+                  t0={r.sc.t0}
+                  t1={r.t1}
+                  sun={r.sum.sun}
+                  earth={r.sum.earth}
+                  both={r.sum.both}
+                  label={r.site.name}
+                />
               </div>
               <button
                 type="button"
