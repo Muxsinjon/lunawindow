@@ -62,10 +62,3 @@ export function horizonAt(mask: ArrayLike<number>, step: number, az: number): nu
   const w = f - Math.floor(f)
   return mask[i] * (1 - w) + mask[(i + 1) % n] * w
 }
-
-export function fmtLat(lat: number) {
-  return `${Math.abs(lat).toFixed(3)}°${lat < 0 ? 'S' : 'N'}`
-}
-export function fmtLon(lon: number) {
-  return `${Math.abs(lon).toFixed(3)}°${lon < 0 ? 'W' : 'E'}`
-}

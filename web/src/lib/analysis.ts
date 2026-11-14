@@ -1,16 +1,28 @@
-// Sun / Earth visibility analysis for a site, terrain-aware.
+// Sun / Earth visibility analysis for a site, terrain-aware. Pure functions (no React).
 import type { Ephemeris, Site } from './data'
-import { type Basis, R_MOON_KM, type Vec3, azEl, enuBasis, horizonAt, unitVec, R2D } from './geometry'
+import { type Basis, type Vec3, azEl, enuBasis, horizonAt, unitVec } from './geometry'
+import {
+  R_EARTH_KM,
+  R_MOON_KM,
+  SUN_RADIUS_DEG,
+  angularRadiusDeg,
+  discFractionAbove,
+  upperLimbMargin,
+} from './physics/disc'
+import { type Interval, firstCrossing, intersect, longestGap, percentCovered, positiveIntervals } from './physics/windows'
 
-export const SUN_RADIUS_DEG = 0.2666 // mean angular radius of the Sun's disc from the Moon
-export const SOLAR_CONSTANT = 1361 // W/m^2 at 1 AU
-export const HOUR = 3600_000
+export { SUN_RADIUS_DEG }
+export type { Interval }
+export const SOLAR_CONSTANT = 1361 // W/m² at 1 AU
+export const PANEL_EFFICIENCY = 0.3
+export const HOUR = 3_600_000
 export const DAY = 24 * HOUR
+export const LUNAR_DAY = 29.530589 * DAY // synodic month
 
 export interface SiteCtx {
   site: Site
   basis: Basis
-  pos: Vec3 // km
+  pos: Vec3 // km, MOON_ME
   azStep: number
 }
 
@@ -25,22 +37,29 @@ export interface Sample {
   sunAz: number
   sunEl: number
   sunHorizon: number
-  /** degrees the Sun's centre is above the local terrain horizon */
+  /** Sun centre height above the terrain horizon (deg). */
   sunMargin: number
-  /** fraction of the solar disc above the terrain (0..1) */
+  /** Upper-limb clearance (deg); > 0 means sunlit (any part of the disc visible). */
+  sunUpper: number
+  /** Fraction of the solar disc area above the terrain (0..1). */
   sunFrac: number
   earthAz: number
   earthEl: number
   earthHorizon: number
   earthMargin: number
+  earthUpper: number
+  earthFrac: number
   earthRadiusDeg: number
   earthDistKm: number
 }
 
-function rowVec(eph: Ephemeris, i: number) {
+function rowVec(eph: Ephemeris, i: number): [Vec3, Vec3] {
   const r = eph.rows
   const k = i * 6
-  return [r[k], r[k + 1], r[k + 2], r[k + 3], r[k + 4], r[k + 5]]
+  return [
+    [r[k], r[k + 1], r[k + 2]],
+    [r[k + 3], r[k + 4], r[k + 5]],
+  ]
 }
 
 export function inRange(eph: Ephemeris, t: number) {
@@ -56,33 +75,40 @@ export function vectorsAt(eph: Ephemeris, t: number): { earth: Vec3; sun: Vec3 }
   const f = (t - eph.meta.startMs) / eph.meta.stepMs
   const i = Math.max(0, Math.min(eph.meta.count - 2, Math.floor(f)))
   const w = Math.max(0, Math.min(1, f - i))
-  const a = rowVec(eph, i)
-  const b = rowVec(eph, i + 1)
-  const v = a.map((x, k) => x * (1 - w) + b[k] * w)
-  const sn = Math.hypot(v[3], v[4], v[5])
-  return { earth: [v[0], v[1], v[2]], sun: [v[3] / sn, v[4] / sn, v[5] / sn] }
+  const [ea, sa] = rowVec(eph, i)
+  const [eb, sb] = rowVec(eph, i + 1)
+  const lerp = (a: Vec3, b: Vec3): Vec3 => [a[0] + (b[0] - a[0]) * w, a[1] + (b[1] - a[1]) * w, a[2] + (b[2] - a[2]) * w]
+  const s = lerp(sa, sb)
+  const n = Math.hypot(s[0], s[1], s[2])
+  return { earth: lerp(ea, eb), sun: [s[0] / n, s[1] / n, s[2] / n] }
 }
 
-function evalVectors(ctx: SiteCtx, t: number, earth: Vec3, sun: Vec3): Sample {
+/** Evaluate Sun/Earth geometry at a site for given body-fixed vectors. */
+export function evalVectors(ctx: SiteCtx, t: number, earth: Vec3, sun: Vec3): Sample {
   const s = azEl(sun, ctx.basis)
   const ev: Vec3 = [earth[0] - ctx.pos[0], earth[1] - ctx.pos[1], earth[2] - ctx.pos[2]]
   const e = azEl(ev, ctx.basis)
   const dist = Math.hypot(ev[0], ev[1], ev[2])
+  const eR = angularRadiusDeg(R_EARTH_KM, dist)
   const sh = horizonAt(ctx.site.horizon, ctx.azStep, s.az)
   const eh = horizonAt(ctx.site.horizon, ctx.azStep, e.az)
   const sunMargin = s.el - sh
+  const earthMargin = e.el - eh
   return {
     t,
     sunAz: s.az,
     sunEl: s.el,
     sunHorizon: sh,
     sunMargin,
-    sunFrac: Math.max(0, Math.min(1, (sunMargin + SUN_RADIUS_DEG) / (2 * SUN_RADIUS_DEG))),
+    sunUpper: upperLimbMargin(sunMargin, SUN_RADIUS_DEG),
+    sunFrac: discFractionAbove(sunMargin, SUN_RADIUS_DEG),
     earthAz: e.az,
     earthEl: e.el,
     earthHorizon: eh,
-    earthMargin: e.el - eh,
-    earthRadiusDeg: Math.asin(6371 / dist) * R2D,
+    earthMargin,
+    earthUpper: upperLimbMargin(earthMargin, eR),
+    earthFrac: discFractionAbove(earthMargin, eR),
+    earthRadiusDeg: eR,
     earthDistKm: dist,
   }
 }
@@ -99,81 +125,50 @@ export function series(ctx: SiteCtx, eph: Ephemeris, t0: number, t1: number, str
   const i1 = Math.min(m.count - 1, Math.floor((t1 - m.startMs) / m.stepMs))
   const out: Sample[] = []
   for (let i = i0; i <= i1; i += stride) {
-    const v = rowVec(eph, i)
-    out.push(evalVectors(ctx, m.startMs + i * m.stepMs, [v[0], v[1], v[2]], [v[3], v[4], v[5]]))
+    const [e, s] = rowVec(eph, i)
+    out.push(evalVectors(ctx, m.startMs + i * m.stepMs, e, s))
   }
   return out
 }
 
-export interface Interval {
-  start: number
-  end: number
+export type Body = 'sun' | 'earth'
+const upper = (b: Body) => (s: Sample) => (b === 'sun' ? s.sunUpper : s.earthUpper)
+
+/** Visibility intervals (upper limb above terrain) for a body. */
+export function visibleIntervals(samples: Sample[], body: Body): Interval[] {
+  const f = upper(body)
+  return positiveIntervals(samples.map((s) => ({ t: s.t, v: f(s) })))
 }
 
-/** Intervals where f(sample) > 0, edges refined by linear interpolation. */
-export function intervals(samples: Sample[], f: (s: Sample) => number): Interval[] {
-  const out: Interval[] = []
-  let start: number | null = null
-  for (let i = 0; i < samples.length; i++) {
-    const v = f(samples[i])
-    if (v > 0 && start === null) {
-      if (i === 0) start = samples[0].t
-      else {
-        const p = f(samples[i - 1])
-        start = samples[i - 1].t + ((samples[i].t - samples[i - 1].t) * -p) / (v - p)
-      }
-    } else if (v <= 0 && start !== null) {
-      const p = f(samples[i - 1])
-      out.push({ start, end: samples[i - 1].t + ((samples[i].t - samples[i - 1].t) * p) / (p - v) })
-      start = null
-    }
-  }
-  if (start !== null && samples.length) out.push({ start, end: samples[samples.length - 1].t })
-  return out
+export interface NextEvent {
+  time: number | null
+  kind: 'Sunrise' | 'Sunset' | 'Earthrise' | 'Earthset'
 }
 
-export function intersect(a: Interval[], b: Interval[]): Interval[] {
-  const out: Interval[] = []
-  let i = 0
-  let j = 0
-  while (i < a.length && j < b.length) {
-    const s = Math.max(a[i].start, b[j].start)
-    const e = Math.min(a[i].end, b[j].end)
-    if (e > s) out.push({ start: s, end: e })
-    if (a[i].end < b[j].end) i++
-    else j++
-  }
-  return out
-}
-
-export const totalMs = (iv: Interval[]) => iv.reduce((s, x) => s + x.end - x.start, 0)
-
-/** Next time the given margin changes sign after t (searching up to `maxDays`). */
-export function nextEvent(ctx: SiteCtx, eph: Ephemeris, t: number, which: 'sun' | 'earth', maxDays = 400) {
-  const key = which === 'sun' ? 'sunMargin' : 'earthMargin'
+/** Next rise/set (upper-limb crossing of the terrain horizon) after t, searching up to maxDays. */
+export function nextEvent(ctx: SiteCtx, eph: Ephemeris, t: number, body: Body, maxDays = 400): NextEvent {
+  const f = upper(body)
   const now = sampleAt(ctx, eph, t)
-  const up = now[key] > 0
+  const up = f(now) > 0
+  const kind: NextEvent['kind'] =
+    body === 'sun' ? (up ? 'Sunset' : 'Sunrise') : up ? 'Earthset' : 'Earthrise'
   const end = Math.min(eph.endMs, t + maxDays * DAY)
-  let prev = now
-  // first step to the next grid point, then hourly
   const m = eph.meta
-  let i = Math.floor((t - m.startMs) / m.stepMs) + 1
-  for (; m.startMs + i * m.stepMs <= end; i++) {
-    const cur = sampleAt(ctx, eph, m.startMs + i * m.stepMs)
-    if (cur[key] > 0 !== up) {
-      const p = prev[key]
-      const c = cur[key]
-      const te = prev.t + ((cur.t - prev.t) * p) / (p - c)
-      return { time: te, kind: up ? (which === 'sun' ? 'Sunset' : 'Earthset') : which === 'sun' ? 'Sunrise' : 'Earthrise' }
-    }
+  let prev = { t, v: f(now) }
+  // walk the hourly grid in chunks to keep memory small
+  for (let i = Math.floor((t - m.startMs) / m.stepMs) + 1; m.startMs + i * m.stepMs <= end; i++) {
+    const [e, s] = rowVec(eph, i)
+    const cur = { t: m.startMs + i * m.stepMs, v: f(evalVectors(ctx, 0, e, s)) }
+    const c = firstCrossing([prev, cur])
+    if (c) return { time: c.time, kind }
     prev = cur
   }
-  return { time: null as number | null, kind: up ? (which === 'sun' ? 'Sunset' : 'Earthset') : which === 'sun' ? 'Sunrise' : 'Earthrise' }
+  return { time: null, kind }
 }
 
-/** Power on a panel (W/m^2 of panel) for a given orientation, efficiency 30%. */
-export function panelPower(s: Sample, orientation: 'vertical' | 'horizontal', eff = 0.3) {
-  const el = Math.max(0, s.sunEl) * (Math.PI / 180)
+/** Power per m² of panel, 30 % cells, using the visible fraction of the solar disc. */
+export function panelPower(s: Sample, orientation: 'vertical' | 'horizontal' = 'vertical', eff = PANEL_EFFICIENCY) {
+  const el = (Math.max(0, s.sunEl) * Math.PI) / 180
   const cosInc = orientation === 'vertical' ? Math.cos(el) : Math.sin(el)
   return SOLAR_CONSTANT * eff * s.sunFrac * Math.max(0, cosInc)
 }
@@ -185,48 +180,39 @@ export interface WindowSummary {
   sunPct: number
   earthPct: number
   bothPct: number
-  longestDarkH: number
-  longestNoCommH: number
+  longestDarkMs: number
+  longestNoLinkMs: number
   maxSunEl: number
   avgPowerVertical: number
 }
 
-function longestGap(iv: Interval[], t0: number, t1: number) {
-  let best = 0
-  let cur = t0
-  for (const x of iv) {
-    best = Math.max(best, x.start - cur)
-    cur = x.end
-  }
-  return Math.max(best, t1 - cur) / HOUR
-}
-
 export function summarize(ctx: SiteCtx, eph: Ephemeris, t0: number, t1: number): { samples: Sample[]; sum: WindowSummary } {
   const samples = series(ctx, eph, t0, t1)
-  const sun = intervals(samples, (s) => s.sunMargin)
-  const earth = intervals(samples, (s) => s.earthMargin)
+  return { samples, sum: summarizeSamples(samples, t0, t1) }
+}
+
+/** Pure summary of a sample series over [t0, t1]. */
+export function summarizeSamples(samples: Sample[], t0: number, t1: number): WindowSummary {
+  const sun = visibleIntervals(samples, 'sun')
+  const earth = visibleIntervals(samples, 'earth')
   const both = intersect(sun, earth)
-  const span = Math.max(1, t1 - t0)
   let p = 0
   let maxSunEl = -90
   for (const s of samples) {
-    p += panelPower(s, 'vertical')
+    p += panelPower(s)
     maxSunEl = Math.max(maxSunEl, s.sunEl)
   }
   return {
-    samples,
-    sum: {
-      sun,
-      earth,
-      both,
-      sunPct: (100 * totalMs(sun)) / span,
-      earthPct: (100 * totalMs(earth)) / span,
-      bothPct: (100 * totalMs(both)) / span,
-      longestDarkH: longestGap(sun, t0, t1),
-      longestNoCommH: longestGap(earth, t0, t1),
-      maxSunEl,
-      avgPowerVertical: samples.length ? p / samples.length : 0,
-    },
+    sun,
+    earth,
+    both,
+    sunPct: percentCovered(sun, t0, t1),
+    earthPct: percentCovered(earth, t0, t1),
+    bothPct: percentCovered(both, t0, t1),
+    longestDarkMs: longestGap(sun, t0, t1),
+    longestNoLinkMs: longestGap(earth, t0, t1),
+    maxSunEl,
+    avgPowerVertical: samples.length ? p / samples.length : 0,
   }
 }
 
@@ -250,10 +236,10 @@ export function hourly(ctx: SiteCtx, eph: Ephemeris): Hourly {
   const sun = new Uint8Array(n)
   const earth = new Uint8Array(n)
   for (let i = 0; i < n; i++) {
-    const v = rowVec(eph, i)
-    const s = evalVectors(ctx, 0, [v[0], v[1], v[2]], [v[3], v[4], v[5]])
-    sun[i] = s.sunMargin > 0 ? 1 : 0
-    earth[i] = s.earthMargin > 0 ? 1 : 0
+    const [e, s] = rowVec(eph, i)
+    const x = evalVectors(ctx, 0, e, s)
+    sun[i] = x.sunUpper > 0 ? 1 : 0
+    earth[i] = x.earthUpper > 0 ? 1 : 0
   }
   const sunRun = new Uint32Array(n + 1)
   for (let i = n - 1; i >= 0; i--) sunRun[i] = sun[i] ? sunRun[i + 1] + 1 : 0
@@ -262,22 +248,4 @@ export function hourly(ctx: SiteCtx, eph: Ephemeris): Hourly {
   const h = { sun, earth, sunRun, earthCum }
   hourlyCache.set(key, h)
   return h
-}
-
-export function fmtDuration(ms: number) {
-  if (!isFinite(ms)) return '—'
-  const neg = ms < 0
-  let m = Math.round(Math.abs(ms) / 60000)
-  const d = Math.floor(m / 1440)
-  m -= d * 1440
-  const h = Math.floor(m / 60)
-  m -= h * 60
-  const s = d > 0 ? `${d}d ${h}h ${m}m` : h > 0 ? `${h}h ${m}m` : `${m}m`
-  return neg ? `-${s}` : s
-}
-
-export function fmtUtc(t: number, withTime = true) {
-  const d = new Date(t)
-  const iso = d.toISOString()
-  return withTime ? `${iso.slice(0, 10)} ${iso.slice(11, 16)} UTC` : iso.slice(0, 10)
 }

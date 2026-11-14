@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { AppData, Site } from './lib/data'
 import { loadAll } from './lib/data'
-import { DAY, HOUR, clampTime, fmtUtc, makeCtx, nextEvent, sampleAt, summarize } from './lib/analysis'
+import { DAY, HOUR, clampTime, makeCtx, nextEvent, sampleAt, summarize } from './lib/analysis'
+import { fmtTime } from './lib/format'
 import { customHorizon } from './lib/terrain'
-import { fmtLat, fmtLon } from './lib/geometry'
+import { fmtLat, fmtLon } from './lib/format'
 import SkyChart from './components/SkyChart'
 import Timeline from './components/Timeline'
 import Metrics from './components/Metrics'
@@ -229,7 +230,7 @@ function Navigator({ data }: { data: AppData }) {
               <Timeline samples={samples} t0={t0} t1={t1} cursor={t} sun={sum.sun} earth={sum.earth} both={sum.both} onPick={setT} />
               <figcaption>
                 Height of the <b className="sun-t">Sun</b> and <b className="earth-t">Earth</b> above the terrain horizon, and the
-                resulting windows from {fmtUtc(t0, false)} to {fmtUtc(t1, false)}. Click to move the cursor.
+                resulting windows from {fmtTime(t0, 'utc', false)} to {fmtTime(t1, 'utc', false)}. Click to move the cursor.
               </figcaption>
             </figure>
           </section>
@@ -279,7 +280,7 @@ function Navigator({ data }: { data: AppData }) {
 
       <footer className="foot">
         NASA data: JPL Horizons · LRO LOLA · PGDA lunar illumination. Built for NASA Space Apps 2026. Ephemeris{' '}
-        {fmtUtc(data.eph.meta.startMs, false)} to {fmtUtc(data.eph.endMs, false)}.
+        {fmtTime(data.eph.meta.startMs, 'utc', false)} to {fmtTime(data.eph.endMs, 'utc', false)}.
       </footer>
     </div>
   )

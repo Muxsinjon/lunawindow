@@ -13,6 +13,8 @@ from pathlib import Path
 import numpy as np
 
 R_MOON_KM = 1737.4
+SUN_RADIUS_DEG = 0.2666
+R_EARTH_KM = 6371.0
 DATA = Path(__file__).resolve().parent.parent / "web" / "public" / "data"
 
 
@@ -66,3 +68,9 @@ class Ephemeris:
 
 def utc(s: str) -> datetime:
     return datetime.fromisoformat(s).replace(tzinfo=timezone.utc)
+
+
+def disc_fraction_above(margin_deg, radius_deg):
+    """Fraction of a disc's area above the horizon (circular segment). Mirrors web discFractionAbove."""
+    x = np.clip(np.asarray(margin_deg, dtype=float) / radius_deg, -1.0, 1.0)
+    return 1.0 - (np.arccos(x) - x * np.sqrt(1.0 - x * x)) / np.pi

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { AppData, Site } from '../lib/data'
-import { DAY, HOUR, fmtUtc, hourly, makeCtx } from '../lib/analysis'
+import { DAY, HOUR, hourly, makeCtx } from '../lib/analysis'
+import { fmtTime } from '../lib/format'
 
 interface Props {
   data: AppData
@@ -100,7 +101,7 @@ export default function SlipAnalyzer({ data, site, t0, onChoose }: Props) {
           <span className="k">Next viable landing</span>
           {firstOk?.bestHour ? (
             <button className="link" onClick={() => onChoose(firstOk.bestHour!)}>
-              {fmtUtc(firstOk.bestHour)} → {firstOk.sunDays.toFixed(1)} d of sun
+              {fmtTime(firstOk.bestHour)} → {firstOk.sunDays.toFixed(1)} d of sun
             </button>
           ) : (
             <b>none in range</b>
@@ -112,7 +113,7 @@ export default function SlipAnalyzer({ data, site, t0, onChoose }: Props) {
             const after = cells.find((c) => c.ok && c.day >= t0 + 30 * DAY)
             return after?.bestHour ? (
               <button className="link" onClick={() => onChoose(after.bestHour!)}>
-                next window {fmtUtc(after.bestHour, false)}
+                next window {fmtTime(after.bestHour, 'utc', false)}
               </button>
             ) : (
               <b>no window</b>
@@ -145,10 +146,10 @@ export default function SlipAnalyzer({ data, site, t0, onChoose }: Props) {
                   onClick={() => c.bestHour && onChoose(c.bestHour)}
                   title={
                     c.bestHour
-                      ? `${fmtUtc(c.bestHour)}\n${c.sunDays.toFixed(1)} days of continuous sun\nEarth in view ${c.earthPct.toFixed(0)}% of mission${c.ok ? '\n✓ meets constraints' : ''}`
-                      : `${fmtUtc(c.day, false)}: no hour with both Sun and Earth up`
+                      ? `${fmtTime(c.bestHour)}\n${c.sunDays.toFixed(1)} days of continuous sun\nEarth in view ${c.earthPct.toFixed(0)}% of mission${c.ok ? '\n✓ meets constraints' : ''}`
+                      : `${fmtTime(c.day, 'utc', false)}: no hour with both Sun and Earth up`
                   }
-                  aria-label={`${fmtUtc(c.day, false)} ${c.ok ? 'viable' : 'not viable'}`}
+                  aria-label={`${fmtTime(c.day, 'utc', false)} ${c.ok ? 'viable' : 'not viable'}`}
                 />
               ))}
             </div>

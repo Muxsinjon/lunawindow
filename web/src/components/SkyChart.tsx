@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import type { Sample } from '../lib/analysis'
-import { SUN_RADIUS_DEG, fmtUtc } from '../lib/analysis'
+import { SUN_RADIUS_DEG } from '../lib/analysis'
+import { fmtTime } from '../lib/format'
 
 interface Props {
   horizon: number[]
@@ -137,7 +138,7 @@ export default function SkyChart({ horizon, azStep, samples, now }: Props) {
           </text>
         </g>
         <text x={W - M.r - 4} y={M.t + 14} textAnchor="end" className="tick">
-          {fmtUtc(now.t)}
+          {fmtTime(now.t)}
         </text>
       </svg>
       <figcaption>

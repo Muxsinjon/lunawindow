@@ -153,7 +153,7 @@ def main():
         hi = int(mask.argmax())
         print(f"{s['id']:22s} elev {site_h:7.0f} m  horizon max {mask.max():5.2f}° @ az {hi * AZ_STEP:5.1f} "
               f"({far[hi]:.0f} km away), min {mask.min():5.2f}°")
-        out.append({**s, "verify": s.get("verify", False), "elevationM": round(site_h),
+        out.append({**s, "lon": round(s["lon"] % 360.0, 6), "verify": s.get("verify", False), "elevationM": round(site_h),
                     "horizon": [round(float(x), 3) for x in mask]})
     meta = {
         "azStepDeg": AZ_STEP, "maxDistanceKm": MAX_KM, "observerHeightM": OBS_HEIGHT_M,

@@ -1,5 +1,6 @@
 import type { Sample, WindowSummary } from '../lib/analysis'
-import { fmtDuration, fmtUtc, panelPower } from '../lib/analysis'
+import { panelPower } from '../lib/analysis'
+import { fmtDuration, fmtTime } from '../lib/format'
 
 interface Props {
   now: Sample
@@ -12,8 +13,8 @@ interface Props {
 function Countdown({ ev, now }: { ev: { time: number | null; kind: string }; now: number }) {
   if (ev.time === null) return <span className="muted">none in range</span>
   return (
-    <span title={fmtUtc(ev.time)}>
-      {fmtDuration(ev.time - now)} <span className="muted">· {fmtUtc(ev.time)}</span>
+    <span title={fmtTime(ev.time)}>
+      {fmtDuration(ev.time - now)} <span className="muted">· {fmtTime(ev.time)}</span>
     </span>
   )
 }
@@ -63,7 +64,7 @@ export default function Metrics({ now, sunEvent, earthEvent, sum, windowDays }: 
           ☀ {sum.sunPct.toFixed(0)}% sunlit · 🜨 {sum.earthPct.toFixed(0)}% Earth in view
         </div>
         <div className="d">
-          longest dark {fmtDuration(sum.longestDarkH * 3600_000)} · no-link {fmtDuration(sum.longestNoCommH * 3600_000)}
+          longest dark {fmtDuration(sum.longestDarkMs)} · no-link {fmtDuration(sum.longestNoLinkMs)}
         </div>
       </div>
     </div>

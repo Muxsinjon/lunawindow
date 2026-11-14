@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Site } from '../lib/data'
-import { fmtLat, fmtLon } from '../lib/geometry'
+import { fmtLat, fmtLon } from '../lib/format'
 
 interface Props {
   sites: Site[]

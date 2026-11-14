@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 
 import numpy as np
 
-from lunar_geom import DATA, Ephemeris
+from lunar_geom import DATA, SUN_RADIUS_DEG, Ephemeris
 
 SITE_ID = "chandrayaan-3"
 LANDING = datetime(2023, 8, 23, 12, 34, tzinfo=timezone.utc)
@@ -28,7 +28,8 @@ def main():
         f = saz / step
         i = int(f) % len(mask)
         w = f - int(f)
-        return sel - (mask[i] * (1 - w) + mask[(i + 1) % len(mask)] * w), sel
+        # upper limb: sunrise/sunset when the top of the disc crosses the terrain horizon
+        return sel - (mask[i] * (1 - w) + mask[(i + 1) % len(mask)] * w) + SUN_RADIUS_DEG, sel
 
     events = []
     t = datetime(2023, 8, 15, tzinfo=timezone.utc)

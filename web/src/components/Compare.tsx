@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { AppData, Site } from '../lib/data'
-import { DAY, fmtDuration, fmtUtc, makeCtx, nextEvent, summarize } from '../lib/analysis'
+import { DAY, makeCtx, nextEvent, summarize } from '../lib/analysis'
+import { fmtDuration, fmtTime } from '../lib/format'
 import Timeline from './Timeline'
 
 export interface Scenario {
@@ -44,7 +45,7 @@ export default function Compare({ data, sites, scenarios, setScenarios, windowDa
   const bSun = best((r) => r.sum.sunPct)
   const bEarth = best((r) => r.sum.earthPct)
   const bBoth = best((r) => r.sum.bothPct)
-  const bDark = best((r) => r.sum.longestDarkH, false)
+  const bDark = best((r) => r.sum.longestDarkMs, false)
 
   const add = (e: React.FormEvent) => {
     e.preventDefault()
@@ -84,12 +85,12 @@ export default function Compare({ data, sites, scenarios, setScenarios, windowDa
               <button className="link" onClick={() => onOpen(r.sc)}>
                 {r.site.name}
               </button>
-              <div className="muted small">{fmtUtc(r.sc.t0)}</div>
+              <div className="muted small">{fmtTime(r.sc.t0)}</div>
             </div>
             <div className={bSun(r)}>{r.sum.sunPct.toFixed(0)}%</div>
             <div className={bEarth(r)}>{r.sum.earthPct.toFixed(0)}%</div>
             <div className={bBoth(r)}>{r.sum.bothPct.toFixed(0)}%</div>
-            <div className={bDark(r)}>{fmtDuration(r.sum.longestDarkH * 3600_000)}</div>
+            <div className={bDark(r)}>{fmtDuration(r.sum.longestDarkMs)}</div>
             <div>
               {r.sunUpAtStart && r.firstSunset.time !== null
                 ? `+${fmtDuration(r.firstSunset.time - r.sc.t0)}`

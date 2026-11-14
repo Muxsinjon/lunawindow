@@ -14,15 +14,12 @@ from pathlib import Path
 import numpy as np
 import rasterio
 
-from lunar_geom import DATA, R_MOON_KM, az_el, unit
+from lunar_geom import DATA, R_MOON_KM, az_el, disc_fraction_above, unit
 
 PGDA = "https://pgda.gsfc.nasa.gov/data/MoonIllumination/"
 FILES = {"sun": "AVGVISIB_75S_120M_201608.TIF", "earth": "AVGVISIB_75S_120M_201608_EARTH.TIF"}
 SUN_R_DEG = 0.2666
 
-
-def visible_fraction(el, horizon, radius_deg):
-    return np.clip((el - horizon + radius_deg) / (2 * radius_deg), 0, 1)
 
 
 def main():
@@ -45,7 +42,7 @@ def main():
         e_rad = np.degrees(np.arcsin(6371.0 / np.linalg.norm(e_vec, axis=1)))
         hs = mask[(np.round(saz / step).astype(int)) % len(mask)]
         he = mask[(np.round(eaz / step).astype(int)) % len(mask)]
-        ours_sun = float(np.mean(visible_fraction(sel, hs, SUN_R_DEG)))
+        ours_sun = float(np.mean(disc_fraction_above(sel - hs, SUN_R_DEG)))
         ours_earth = float(np.mean(eel - he > -e_rad))  # any part of disc visible (PGDA convention)
 
         rho = 2 * R_MOON_KM * 1000 * np.tan(np.pi / 4 + np.radians(lat) / 2)
