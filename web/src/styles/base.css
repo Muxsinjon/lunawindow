@@ -1279,8 +1279,12 @@ figcaption {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .cal-row {
-    grid-template-columns: 40px repeat(31, minmax(0, 1fr));
+    grid-template-columns: 46px repeat(31, minmax(0, 1fr));
     gap: 1px;
+  }
+  .mlabel {
+    font-size: var(--fs-0);
+    white-space: nowrap;
   }
   .cell {
     border-radius: 2px;

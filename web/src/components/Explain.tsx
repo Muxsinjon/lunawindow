@@ -34,6 +34,12 @@ export default function Explain({ siteName, lat, now, sunEvent, sum, windowDays 
     lines.push(
       `The Sun is ${now.sunEl.toFixed(1)}° above a perfectly flat horizon, so a simple calculator would say “daytime”. But a ridge to the ${dir} rises to ${now.sunHorizon.toFixed(1)}°, so ${siteName} is in shadow.`,
     )
+  } else if (now.sunUpper > 0 && now.sunFrac < 0.999) {
+    lines.push(
+      `The Sun is ${now.sunEl.toFixed(1)}° high in the ${dir}, and it is sliding along a ridge of the same height: only ${Math.round(now.sunFrac * 100)} % of its disc is still visible. A flat-horizon calculator would call this full daylight.`,
+    )
+    if (sunEvent.time !== null)
+      lines.push(`The last sliver disappears in ${fmtDuration(sunEvent.time - now.t)}. That is when solar power stops.`)
   } else if (now.sunUpper > 0) {
     lines.push(
       `The Sun stands ${now.sunEl.toFixed(1)}° high in the ${dir}. Terrain in that direction reaches ${now.sunHorizon.toFixed(1)}°, so the Sun clears it by ${(now.sunMargin).toFixed(1)}°.`,

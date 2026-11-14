@@ -51,7 +51,7 @@ export const INFO: Record<string, InfoText> = {
     source: `${EPH}; ${TERRAIN}.`,
   },
   map: {
-    what: 'Long-term share of time each spot sees the Sun (or Earth). Brighter means more.',
+    what: 'Long-term share of time each spot sees the Sun (or Earth). Stronger colour means more, as shown in the scale under the map.',
     how: 'Average over an 18.6-year cycle by the LOLA team, resampled to 960 m.',
     source: 'Mazarico et al. 2011, Icarus 211; NASA GSFC PGDA "Lunar Polar Illumination" (AVGVISIB 75S 120 m).',
   },

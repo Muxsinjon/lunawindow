@@ -48,8 +48,8 @@ export default function Timeline({ samples, t0, t1, cursor, sun, earth, both, on
   const top = 10
   const lanesY = top + curveH + (compact ? 0 : 14)
   const H = lanesY + 3 * (laneH + gap) + (compact ? 16 : 22)
-  const L = compact ? 2 : narrow ? 66 : 96
-  const R = 10
+  const L = compact ? 14 : narrow ? 66 : 96
+  const R = compact ? 18 : 12
   const pw = W - L - R
   const x = (t: number) => L + ((t - t0) / (t1 - t0)) * pw
   const svgRef = useRef<SVGSVGElement>(null)
@@ -140,7 +140,7 @@ export default function Timeline({ samples, t0, t1, cursor, sun, earth, both, on
         {ticks.map((t) => (
           <g key={t}>
             <line x1={x(t)} x2={x(t)} y1={lanesY - 2} y2={H - (compact ? 14 : 18)} className="grid" />
-            <text x={x(t)} y={H - 4} className="tick" textAnchor="middle">
+            <text x={x(t)} y={H - 4} className="tick" textAnchor={x(t) - L < 14 ? 'start' : W - R - x(t) < 14 ? 'end' : 'middle'}>
               {relative ? `+${Math.round((t - t0) / DAY)} d` : fmtTime(t, tz, false).slice(5)}
             </text>
           </g>

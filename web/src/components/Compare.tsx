@@ -22,6 +22,11 @@ interface Props {
   onOpen: (s: Scenario) => void
 }
 
+const pts = (d: number) => {
+  const n = Math.abs(Math.round(d))
+  return `${n} ${n === 1 ? 'pt' : 'pts'}`
+}
+
 type Row = {
   sc: Scenario
   site: Site
@@ -41,9 +46,9 @@ interface Col {
 }
 
 const COLS: Col[] = [
-  { key: 'sun', label: 'Sunlit', info: 'sun', value: (r) => r.sum.sunPct, fmt: fmtPct, higherIsBetter: true, deltaFmt: (d) => `${Math.abs(Math.round(d))} pts` },
-  { key: 'earth', label: 'Earth in view', info: 'earth', value: (r) => r.sum.earthPct, fmt: fmtPct, higherIsBetter: true, deltaFmt: (d) => `${Math.abs(Math.round(d))} pts` },
-  { key: 'both', label: 'Operations window', info: 'ops', value: (r) => r.sum.bothPct, fmt: fmtPct, higherIsBetter: true, deltaFmt: (d) => `${Math.abs(Math.round(d))} pts` },
+  { key: 'sun', label: 'Sunlit', info: 'sun', value: (r) => r.sum.sunPct, fmt: fmtPct, higherIsBetter: true, deltaFmt: pts },
+  { key: 'earth', label: 'Earth in view', info: 'earth', value: (r) => r.sum.earthPct, fmt: fmtPct, higherIsBetter: true, deltaFmt: pts },
+  { key: 'both', label: 'Operations window', info: 'ops', value: (r) => r.sum.bothPct, fmt: fmtPct, higherIsBetter: true, deltaFmt: pts },
   { key: 'dark', label: 'Longest dark', info: 'dark', value: (r) => r.sum.longestDarkMs, fmt: fmtDuration, higherIsBetter: false, deltaFmt: (d) => fmtDuration(Math.abs(d)) },
   { key: 'sunset', label: 'Sun lasts after start', info: 'sun', value: (r) => r.firstSunsetMs, fmt: fmtDuration, higherIsBetter: true, deltaFmt: (d) => fmtDuration(Math.abs(d)) },
 ]
@@ -67,7 +72,7 @@ export default function Compare({ data, sites, scenarios, setScenarios, windowDa
           site,
           t1,
           ...r,
-          firstSunsetMs: lit && ev.time !== null ? ev.time - sc.t0 : lit ? null : 0,
+          firstSunsetMs: lit && ev.time !== null ? ev.time - sc.t0 : null,
           sunriseMs: !lit && ev.time !== null ? ev.time - sc.t0 : null,
         }
       }),

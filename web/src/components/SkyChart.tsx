@@ -85,6 +85,8 @@ export default function SkyChart({ horizon, azStep, samples, now }: Props) {
   const earthR = Math.max(6, now.earthRadiusDeg * pxPerDeg)
   const poly = (pts: [number, number][]) => pts.map(([a, e]) => `${x(a).toFixed(1)},${y(e).toFixed(1)}`).join(' ')
   const sunLit = now.sunUpper > 0
+  // keep the two body labels from overlapping: push the Sun label below its disc when they collide
+  const labelsClash = Math.abs(x(now.sunAz) - x(now.earthAz)) < 90 && Math.abs(y(now.sunEl) - y(now.earthEl)) < 26
   const earthUp = now.earthUpper > 0
 
   const onMove = (e: React.PointerEvent<SVGSVGElement>) => {
@@ -168,14 +170,24 @@ export default function SkyChart({ horizon, azStep, samples, now }: Props) {
 
           <g className={earthUp ? 'body' : 'body occluded'}>
             <circle cx={x(now.earthAz)} cy={y(now.earthEl)} r={earthR} className="earth-disc" />
-            <text x={x(now.earthAz) + earthR + 6} y={y(now.earthEl) + 4} className="label earth-label">
+            <text
+              x={x(now.earthAz) + (x(now.earthAz) > W - 90 ? -earthR - 6 : earthR + 6)}
+              y={y(now.earthEl) + 4}
+              textAnchor={x(now.earthAz) > W - 90 ? 'end' : 'start'}
+              className="label earth-label"
+            >
               Earth{earthUp ? '' : ' (blocked)'}
             </text>
           </g>
           <g className={sunLit ? 'body' : 'body occluded'}>
             <circle cx={x(now.sunAz)} cy={y(now.sunEl)} r={sunR * 2.2} className="sun-halo" />
             <circle cx={x(now.sunAz)} cy={y(now.sunEl)} r={sunR} className="sun-disc" />
-            <text x={x(now.sunAz) + sunR + 8} y={y(now.sunEl) - sunR - 4} className="label sun-label">
+            <text
+              x={x(now.sunAz) + (labelsClash ? -sunR - 8 : sunR + 8)}
+              y={labelsClash ? y(now.sunEl) + sunR + 16 : y(now.sunEl) - sunR - 4}
+              textAnchor={labelsClash ? 'end' : 'start'}
+              className="label sun-label"
+            >
               Sun{sunLit ? '' : ' (behind terrain)'}
             </text>
           </g>
