@@ -35,3 +35,4 @@ This log supports the Space Apps "Use of Super Intelligence (SI)" disclosure.
 | 2026-11-14 | Rebrand (title, header, OG image with computed Sun/Earth), README, CLAUDE.md, checklist status | `web/index.html`, `pipeline/make_brand_assets.py`, `README.md`, `CLAUDE.md`, `docs/LUNAWINDOW_CHECKLIST.md` |
 | 2026-11-14 | Updated Playwright smoke tests and screenshots for the new workspaces | `tests/e2e/*`, `docs/screenshots/after/*` |
 | 2026-11-14 | Performance: prefetch the requested workspace chunk in parallel with data; Lighthouse re-run | `web/src/App.tsx`, `docs/lighthouse/*`, `docs/QUALITY_CHECKLIST.md` |
+| 2026-11-14 | Publishing: rewrote commit author, pushed to GitHub, enabled Pages, verified the live site with the smoke tests, added the live link | `README.md`, `docs/QUALITY_CHECKLIST.md`, `docs/LUNAWINDOW_CHECKLIST.md` |

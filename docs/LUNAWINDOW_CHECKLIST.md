@@ -38,13 +38,12 @@ Team decision on C1: **keep terrain-aware as the main model and add the geometri
 | 10 | Welcome screen plus guided demo (10 steps, live numbers; a blackout limit of 48 → 12 h changes 37 → 0 feasible starts) | ✅ |
 | 11 | Rebrand | ✅ |
 | 12 | Tests: invariants, thresholds, always/never visible, no window, insufficient data, start in a blackout, end of data | ✅ 61 unit tests, 10 end-to-end flows |
-| 13 | Deploy and check in a private window | ❌ **Needs a public GitHub repo (team decision)** |
+| 13 | Deploy and check in a private window | ✅ Live at https://muxsinjon.github.io/lunawindow/ (repo `Muxsinjon/lunawindow`); smoke tests pass against the live site |
 
 **Still open:**
 - Map zoom and pan: only three fixed extents (80°, 85°, 88° S).
 - 3D terrain and WebXR: the prompt's optional stretch goal.
 - Three coordinates flagged "Needs verification".
-- Deployment.
 - The data form differs from the prompt's per-site observation records (§7.1). We ship validated sub-solar and sub-Earth points instead and compute az/el in the browser; this is documented in the README and the About page.
 
 ---

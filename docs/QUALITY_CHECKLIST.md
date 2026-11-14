@@ -13,12 +13,12 @@ Each ticked item was verified on 2026-11-14; the evidence follows each item.
 - [x] Every curated site has a cited source (unit-tested). Three carry a visible "Needs verification" badge.
 - [x] User-facing text is English (cspell pass; proper nouns and identifiers only).
 - [x] No NASA logos. The OG image and welcome hero are drawn from our own LOLA horizon and computed Sun and Earth positions; no AI-generated images.
-- [ ] The deployed URL and repo open in a private window. **Blocked:** there is no public repo yet (team decision).
+- [x] The deployed URL (https://muxsinjon.github.io/lunawindow/) and the repo (https://github.com/Muxsinjon/lunawindow) open without a login: both return HTTP 200 anonymously, and the 10 smoke flows pass against the live site in a fresh browser with no cookies. In the first minutes after the deploy, 2 of 3 runs had an intermittent failure in the Finder → Surface View flow; the 5 runs since all passed. The cause is not confirmed (most likely a slow first fetch of lazily loaded code from the CDN).
 - [x] docs/AI_USAGE.md is up to date.
 
 ## Open items needing a team decision
-1. **Publish:** create the public GitHub repo (which account or org?). Rename the branch to `main`, push, and enable Pages via "GitHub Actions". Then add the live URL to the README and check it in a private window.
-2. **Git identity:** commits use a placeholder author. Set your real name and email, then rewrite the author on this branch before pushing.
+1. ~~Publish~~ Done: public repo `Muxsinjon/lunawindow`, GitHub Pages via Actions.
+2. ~~Git identity~~ Done: all commits authored as Muxsinjon (GitHub noreply address).
 3. **Team section** in the README: names and roles.
 4. **Three flagged coordinates** (SLIM, Chang'e 4, Shackleton floor): verify them in LROC QuickMap, or drop them.
 5. **AI disclosure wording:** the Space Apps rule is that AI must not generate the solution idea. Confirm that `docs/AI_USAGE.md` describes how your team actually worked.

@@ -19,7 +19,7 @@ It answers three questions:
 
 It is a preliminary tool and does not certify landing safety.
 
-**Live demo:** _add the GitHub Pages URL here after the first deploy (see "Deploy")._
+**Live demo:** https://muxsinjon.github.io/lunawindow/ · **Source:** https://github.com/Muxsinjon/lunawindow
 
 ## Workspaces (one shared mission state, in the URL)
 - **Welcome:** choose "Explore landing sites" or "Plan a lunar mission", or **Try the guided demo**, a 10-step walkthrough on real data.
