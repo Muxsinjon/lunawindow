@@ -55,10 +55,6 @@ function rowVec(eph: Ephemeris, i: number): [Vec3, Vec3] {
   ]
 }
 
-export function inRange(eph: Ephemeris, t: number) {
-  return t >= eph.meta.startMs && t <= eph.endMs
-}
-
 export function clampTime(eph: Ephemeris, t: number) {
   return Math.max(eph.meta.startMs, Math.min(eph.endMs, t))
 }

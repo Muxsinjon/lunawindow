@@ -80,7 +80,9 @@ def main():
         worst = max(worst, abs(ds), abs(de))
         md.append(f"| {r['site']} | {r['utc'][:16].replace('T', ' ')} | {r['horizons']['sunEl']:.4f}° | {r['ours']['sunEl']:.4f}° | "
                   f"{ds:+.4f}° | {r['horizons']['earthEl']:.4f}° | {r['ours']['earthEl']:.4f}° | {de:+.4f}° |")
-    md += ["", f"**Worst difference: {worst:.4f}°.** For scale, the Sun's disc is 0.533° wide.", ""]
+    md += ["", f"**Worst difference: {worst:.4f}°.** For scale, the Sun's disc is 0.533° wide.", "",
+           "The web app ships the ephemeris at 6-hour steps and interpolates it back to hourly in the browser. "
+           "`src/lib/validation.test.ts` re-checks all nine rows through that path: the worst difference is again 0.0034°.", ""]
     md += [f"A wider sweep ({v['period']}, 5 sites) gives a worst elevation error of **{v['worstElevationErrorDeg']}°** "
            "(`pipeline/validate_ephemeris.py`).", ""]
     if "illumination" in v:

@@ -57,10 +57,6 @@ export function intersect(a: Interval[], b: Interval[]): Interval[] {
   return out
 }
 
-export function totalDuration(iv: Interval[]): number {
-  return iv.reduce((s, x) => s + (x.end - x.start), 0)
-}
-
 /** Percentage (0..100) of [t0, t1] covered by the intervals (clipped to the range). */
 export function percentCovered(iv: Interval[], t0: number, t1: number): number {
   if (!(t1 > t0)) return 0

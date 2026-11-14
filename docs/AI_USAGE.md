@@ -18,3 +18,13 @@ This log supports the Space Apps "Use of Super Intelligence (SI)" disclosure.
 | 2026-11-14 | Wrote the README, .gitignore and launch config | `README.md`, `.gitignore`, `.claude/launch.json` |
 | 2026-11-14 | Audited the codebase and took before screenshots | `AUDIT.md`, `docs/screenshots/before/*`, `tests/e2e/screenshots.py` |
 | 2026-11-14 | Wrote the project rules, design system, quality checklist and this log | `CLAUDE.md`, `docs/DESIGN_SYSTEM.md`, `docs/QUALITY_CHECKLIST.md`, `docs/AI_USAGE.md` |
+| 2026-11-14 | Physics refactor: pure functions for disc fraction, upper-limb rise/set, longitude normalization, time windows; 0–360° longitude data contract | `web/src/lib/physics/*`, `web/src/lib/analysis.ts`, `pipeline/horizon_mask.py`, `pipeline/lunar_geom.py` |
+| 2026-11-14 | Unit tests (physics, URL state, ephemeris upsampling, Horizons fixture) and the validation report generator | `web/src/lib/**/*.test.ts`, `pipeline/validation_table.py`, `docs/VALIDATION.md` |
+| 2026-11-14 | Design tokens and theme ("Terminator"), dark/light, Barlow type; restyled every component | `web/src/styles/*`, `web/src/components/*`, `web/index.html` |
+| 2026-11-14 | New UI pieces: header with Planner/Explore and UTC/Local, info tooltips, status chips, Explore explanations, mission-validation panel, onboarding, error boundaries, skeletons | `Header.tsx`, `ui.tsx`, `Metrics.tsx`, `Explain.tsx`, `MissionCheck.tsx`, `Onboarding.tsx`, `glossary.ts` |
+| 2026-11-14 | Compare deltas, landing-calendar restyle, data-and-methods page, shareable URL state and keyboard control | `Compare.tsx`, `SlipAnalyzer.tsx`, `About.tsx`, `lib/url.ts`, `App.tsx` |
+| 2026-11-14 | Performance: 6-hourly ephemeris upsampled in the browser, lazy terrain, Preact runtime alias, non-blocking fonts; Lighthouse runs | `lib/ephemeris.ts`, `lib/data.ts`, `PolarMap.tsx`, `vite.config.ts`, `docs/lighthouse/*` |
+| 2026-11-14 | Brand assets (OG image, favicons), rendered from hand-written SVG with Playwright (not AI-generated imagery) | `pipeline/make_brand_assets.py`, `web/public/*.png`, `web/public/favicon.svg` |
+| 2026-11-14 | Repo hygiene: ESLint, Prettier, .gitattributes, CI and Pages workflows, README, LICENSE, dead-code removal | `web/eslint.config.js`, `.github/workflows/*`, `README.md`, `LICENSE` |
+| 2026-11-14 | Playwright smoke tests and screenshot capture; after screenshots | `tests/e2e/*`, `docs/screenshots/after/*` |
+| 2026-11-14 | Audit, status tracking and quality checklist | `AUDIT.md`, `docs/QUALITY_CHECKLIST.md` |

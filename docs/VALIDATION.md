@@ -20,6 +20,8 @@ Horizons: apparent topocentric az/el (quantity 4) for an observer on the IAU lun
 
 **Worst difference: 0.0034°.** For scale, the Sun's disc is 0.533° wide.
 
+The web app ships the ephemeris at 6-hour steps and interpolates it back to hourly in the browser. `src/lib/validation.test.ts` re-checks all nine rows through that path: the worst difference is again 0.0034°.
+
 A wider sweep (2026-11-01 to 2026-12-01 every 6h, 5 sites) gives a worst elevation error of **0.0057°** (`pipeline/validate_ephemeris.py`).
 
 ## 2. Terrain-aware visibility vs NASA LOLA illumination maps

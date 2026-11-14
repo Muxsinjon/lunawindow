@@ -35,10 +35,6 @@ export function fmtDuration(ms: number): string {
   return neg ? `−${s}` : s
 }
 
-export function fmtKm(km: number): string {
-  return km < 10 ? `${km.toFixed(1)}${NBSP}km` : `${Math.round(km).toLocaleString('en-US')}${NBSP}km`
-}
-
 function pad(n: number) {
   return String(n).padStart(2, '0')
 }

@@ -78,5 +78,40 @@ Screenshots: `docs/screenshots/before/` (explorer, compare, slip, about × 1440 
 - **slip-390:** the calendar is cropped at day 12 with only a hidden horizontal scroll. The month labels take a third of the width.
 - **about:** readable but plain. The validation tables are good content with weak presentation.
 
-## Status of fixes
-See `docs/QUALITY_CHECKLIST.md` and the commit log on branch `pro-upgrade`. Items needing a team decision are listed at the end of that file.
+## Status of fixes (after the professional pass, 2026-11-14)
+
+| # | Issue | Status | Where |
+|---|---|---|---|
+| 1 | Upper-limb rule, partial disc %, exact segment area | ✅ Fixed | `src/lib/physics/disc.ts`, `analysis.ts`; pipeline re-run |
+| 2 | Physics unit tests | ✅ 41 tests, including a JPL Horizons fixture (3 sites × 3 times) | `src/lib/**/*.test.ts` |
+| 3 | Default scenario shows the insight | ✅ Opens on Nobile Rim 2, 3 h before the Sun sets 6.4° above a flat horizon | `App.tsx` `DEFAULT` |
+| 4 | Error boundary | ✅ Around every view, plus a retryable load error | `components/ui.tsx` |
+| 5 | Deploy | ⚠️ Workflows ready (`pages.yml`, `ci.yml`); **needs a public GitHub repo (team decision)** | `.github/workflows/` |
+| 6 | Generic visual system, no light theme | ✅ "Terminator" tokens, Barlow with tabular numbers, sentence-case labels, light theme | `styles/tokens.css`, `docs/DESIGN_SYSTEM.md` |
+| 7 | Sky chart not the hero | ✅ Large hero with axis titles, legend, hover readout, sky tint by Sun state, screen-reader summary | `SkyChart.tsx` |
+| 8 | Dense metric cards | ✅ Status chips, big tabular numbers, an ⓘ on every metric | `Metrics.tsx`, `glossary.ts` |
+| 9 | Phone layout | ✅ Charts drawn at true pixel width; stacked layout; calendar fits 390 px | `useWidth`, `base.css` |
+| 10 | Colour-only lanes | ✅ Okabe-Ito-derived colours, plus patterns (striped Earth, hatched Both), icons and labels | `Timeline.tsx` |
+| 11 | Chart accessibility and keyboard | ✅ Text summaries, ←/→, Shift, Space; Lighthouse accessibility 100 | |
+| 12 | Compare legibility and deltas | ✅ ▲/▼ vs baseline, best value outlined, readable ticks | `Compare.tsx` |
+| 13 | Map ramp and legend | ✅ Theme-aware ramp with a 0–100 % scale | `PolarMap.tsx` |
+| 14 | Local time | ✅ UTC / Local toggle (in the URL) | `format.ts` |
+| 15 | URL state | ✅ Site, start, cursor, window, tab, mode and time zone; back/forward; Copy link | `url.ts` (tested) |
+| 16–21 | P2 items | Open (see below) | |
+
+**Bundle after:**
+- Main JS is 42 kB (16 kB gzip), down from 254 kB (81 kB gzip). Compare, Calendar, Data and Map are separate chunks of 2–5 kB each. CSS is 22 kB.
+- First-screen data is 0.8 MB, down from 7.4 MB: ephemeris 0.32 MB, sites 80 kB, validation 2 kB. The 5.7 MB of terrain and overlays load only when the map scrolls into view.
+- **Lighthouse** (production build, gzip; reports in `docs/lighthouse/`):
+  - Mobile: Performance 91 / 92 / 92, Accessibility 100, Best Practices 100.
+  - Desktop: Performance 77 / 97 / 98 (the first cold run hit a 5.1 s simulated LCP while the observed render took 0.35 s), Accessibility 100, Best Practices 100.
+
+**Still open (P2), with estimates:**
+- Tidy the touching day ticks at the right edge of compact lanes on phones: 15 min.
+- 3D shadow time-lapse (Three.js, lazy-loaded): 4–6 h.
+- DSN ground-station visibility: 2–3 h.
+- LOLA 20 m or 5 m near-field terrain for curated polar sites: 2–3 h of pipeline work plus a 0.5 MB data increase.
+- Ephemeris beyond 2031 (re-run `fetch_ephemeris.py` with a later end year): 15 min.
+- CSV or PDF export of scenarios: 1–2 h.
+- Move the custom-site horizon into a Web Worker (it takes about 0.4 s on the main thread today): 1 h.
+- Primary-source check for 3 flagged coordinates (SLIM, Chang'e 4, Shackleton floor) in LROC QuickMap: 30 min (team).
